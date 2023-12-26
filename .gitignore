@@ -1,1 +1,4 @@
 /python/santa_utils/solutions/
+*.bin
+*.o
+*.out
