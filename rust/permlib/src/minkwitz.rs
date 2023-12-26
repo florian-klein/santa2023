@@ -95,24 +95,6 @@ impl MinkWitz {
 mod test {
     use super::*;
 
-    // #[test]
-    // pub fn test_minkwitz_factorization(){
-    //     let mut label_to_gen: HashMap<&str, Permutation> = HashMap::new();
-    //     let perm1 = permutation_utils::parse_permutation_from_cycle("(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19)", 20);
-    //     let perm2 = permutation_utils::parse_permutation_from_cycle("(0,3)(1,2)", 20);
-    //     let perm3 = perm1.inverse();
-    //     let perm4 = perm2.inverse();
-    //     label_to_gen.insert("a", perm1.clone());
-    //     label_to_gen.insert("b", perm2.clone());
-    //     label_to_gen.insert("-a'", perm3.clone());
-    //     label_to_gen.insert("-b'", perm4.clone());
-    //     let genset = permgroups::GeneratingSet::new(vec![perm1.clone(), perm2, perm3, perm4]);
-    //     let max_word_size = 3;
-    //     let table = MinkWitz::minkwitz_table(&genset, label_to_gen.clone(), max_word_size, 20);
-    //     // let factorization = MinkWitz::search_factorization(&perm1, &genset, label_to_gen.clone(), max_word_size);
-    //     assert_eq!(0, 1);
-    // }
-    //
     #[test]
     pub fn test_minkwitz_small(){
         let mut label_to_gen: HashMap<&str, Permutation> = HashMap::new();
@@ -122,11 +104,11 @@ mod test {
         let perm4 = perm2.inverse();
         label_to_gen.insert("a", perm1.clone());
         label_to_gen.insert("b", perm2.clone());
-        label_to_gen.insert("-a'", perm3.clone());
-        label_to_gen.insert("-b'", perm4.clone());
+        label_to_gen.insert("c", perm3.clone());
+        label_to_gen.insert("d", perm4.clone());
 
         let genset = permgroups::GeneratingSet::new(vec![perm1.clone(), perm2.clone(), perm3, perm4]);
-        let max_word_size = 10;
+        let max_word_size = 3;
         let b_i_x = MinkWitz::minkwitz_table(&genset, label_to_gen.clone(), max_word_size, 3);
         println!("b_i_x: {:?}", b_i_x);
         // let goal_perm = perm1.clone() * perm2.clone() * perm1.clone() * perm2.clone(); 
