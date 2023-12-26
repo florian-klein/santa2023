@@ -6,7 +6,6 @@ import pandas as pd
 
 
 def analyze_solution(solution_path, puzzles_path):
-    csv.field_size_limit(sys.maxsize)
     puzzle_types = {}
     with open(puzzles_path, 'r') as f:
         reader = csv.reader(f)
@@ -39,13 +38,26 @@ def analyze_solution(solution_path, puzzles_path):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print('Usage: python analyze.py <solution_path> <puzzles_path>')
+    if len(sys.argv) < 3:
+        print('Usage: python analyze.py <solution_path> <puzzles_path> [puzzle_id]')
         sys.exit(1)
+
+    csv.field_size_limit(sys.maxsize)
 
     solution_path = sys.argv[1]
     puzzles_path = sys.argv[2]
 
-    analyze_solution(solution_path, puzzles_path)
+    if len(sys.argv) == 4:
+        puzzle_id = int(sys.argv[3])
+        with open(solution_path, 'r') as f:
+            reader = csv.reader(f)
+            next(reader)
+            for row in reader:
+                id = int(row[0])
+                if id == puzzle_id:
+                    print("Score for puzzle {} = {}".format(puzzle_id, len(row[1].split('.'))))
+                    break
+    else:
+        analyze_solution(solution_path, puzzles_path)
 
 

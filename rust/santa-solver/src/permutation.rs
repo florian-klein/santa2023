@@ -1,8 +1,14 @@
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Permutation {
     p: Vec<usize>
+}
+
+#[derive(Debug, Clone)]
+pub struct CompressedPermutation {
+    m: HashMap<usize, usize>
 }
 
 impl Permutation {
@@ -24,6 +30,14 @@ impl Permutation {
 
     pub fn get_vec(&self) -> &Vec<usize> {
         &self.p
+    }
+
+    pub fn apply<T: Clone>(&self, v: &Vec<T>) -> Vec<T> {
+        let mut result = vec![v[0].clone(); self.len()];
+        for i in 0..self.len() {
+            result[i] = v[self.p[i] - 1].clone();
+        }
+        result
     }
 
     pub fn compose(&self, other: &Permutation) -> Permutation {
@@ -54,6 +68,16 @@ impl Permutation {
         }
         Permutation::new(res)
     }
+
+    pub fn compress(&self) -> CompressedPermutation {
+        let mut m = HashMap::new();
+        for i in 0..self.len() {
+            if self.p[i] != i + 1 {
+                m.insert(i + 1, self.p[i]);
+            }
+        }
+        CompressedPermutation::new(m)
+    }
 }
 
 impl Display for Permutation {
@@ -62,8 +86,59 @@ impl Display for Permutation {
     }
 }
 
+impl CompressedPermutation {
+    pub fn new(m: HashMap<usize, usize>) -> CompressedPermutation {
+        CompressedPermutation { m }
+    }
+
+    pub fn identity() -> CompressedPermutation {
+        let m = HashMap::new();
+        CompressedPermutation::new(m)
+    }
+
+    pub fn get(&self, i: usize) -> usize {
+        match self.m.get(&i) {
+            Some(j) => *j,
+            None => i,
+        }
+    }
+
+    pub fn compose(&self, other: &CompressedPermutation) -> CompressedPermutation {
+        let mut m = HashMap::new();
+        for (i, j) in other.m.iter() {
+            m.insert(*i, self.get(*j));
+        }
+        for (i, j) in self.m.iter() {
+            if !m.contains_key(i) {
+                m.insert(*i, *j);
+            }
+        }
+        CompressedPermutation::new(m)
+    }
+
+    pub fn inverse(&self) -> CompressedPermutation {
+        let mut m = HashMap::new();
+        for (i, j) in self.m.iter() {
+            m.insert(*j, *i);
+        }
+        CompressedPermutation::new(m)
+    }
+}
+
+impl Display for CompressedPermutation {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut keys: Vec<&usize> = self.m.keys().collect();
+        keys.sort();
+        write!(f, "{{")?;
+        for key in keys {
+            write!(f, "{}: {}, ", key, self.m[key])?;
+        }
+        write!(f, "}}")
+    }
+}
+
 #[cfg(test)]
-mod tests {
+mod permutation_tests {
     use super::*;
 
     #[test]
@@ -105,6 +180,14 @@ mod tests {
     }
 
     #[test]
+    fn test_apply() {
+        let p = Permutation::new(vec![2, 3, 1]);
+        let v = vec![1, 2, 3];
+        let w = p.apply(&v);
+        assert_eq!(w, vec![2, 3, 1]);
+    }
+
+    #[test]
     fn test_inverse() {
         let p = Permutation::new(vec![5, 3, 1, 4, 2]);
         let q = p.inverse();
@@ -131,5 +214,86 @@ mod tests {
         let q = p.pow(2);
         let r = p.compose(&p);
         assert_eq!(q.p, r.p);
+    }
+
+    #[test]
+    fn test_compress() {
+        let p = Permutation::new(vec![2, 1, 3]);
+        let cp = p.compress();
+        let mut m = HashMap::new();
+        m.insert(1, 2);
+        m.insert(2, 1);
+        assert_eq!(cp.m, m);
+    }
+}
+
+#[cfg(test)]
+mod compressed_permutation_tests {
+    use std::collections::HashMap;
+    use super::*;
+
+    #[test]
+    fn test_new() {
+        let m = HashMap::new();
+        let cp = CompressedPermutation::new(m);
+        assert_eq!(cp.m, HashMap::new());
+    }
+
+    #[test]
+    fn test_display() {
+        let mut m = HashMap::new();
+        m.insert(1, 2);
+        m.insert(2, 3);
+        let cp = CompressedPermutation::new(m);
+        assert_eq!(format!("{}", cp), "{1: 2, 2: 3, }");
+    }
+
+    #[test]
+    fn test_identity() {
+        let cp = CompressedPermutation::identity();
+        assert_eq!(cp.m, HashMap::new());
+    }
+
+    #[test]
+    fn test_get() {
+        let mut m = HashMap::new();
+        m.insert(1, 2);
+        m.insert(2, 3);
+        let cp = CompressedPermutation::new(m);
+        assert_eq!(cp.get(1), 2);
+        assert_eq!(cp.get(2), 3);
+        assert_eq!(cp.get(3), 3);
+    }
+
+    #[test]
+    fn test_compose() {
+        let mut m = HashMap::new();
+        m.insert(1, 2);
+        m.insert(2, 3);
+        m.insert(3, 1);
+        let cp = CompressedPermutation::new(m);
+        let mut m = HashMap::new();
+        m.insert(2, 3);
+        m.insert(3, 2);
+        let cp2 = CompressedPermutation::new(m);
+        let cp3 = cp.compose(&cp2);
+        let mut m = HashMap::new();
+        m.insert(1, 2);
+        m.insert(2, 1);
+        m.insert(3, 3);
+        assert_eq!(cp3.m, m);
+    }
+
+    #[test]
+    fn test_inverse() {
+        let mut m = HashMap::new();
+        m.insert(1, 2);
+        m.insert(2, 3);
+        let cp = CompressedPermutation::new(m);
+        let cp2 = cp.inverse();
+        let mut m = HashMap::new();
+        m.insert(2, 1);
+        m.insert(3, 2);
+        assert_eq!(cp2.m, m);
     }
 }
