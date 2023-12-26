@@ -19,18 +19,20 @@ struct MoveData {
 
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-enum PuzzleType {
+pub(crate) enum PuzzleType {
     CUBE(usize),
     WREATH(usize),
     GLOBE(usize, usize),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Puzzle {
+    pub id: usize,
     pub initial_state: Vec<usize>,
     pub goal_state: Vec<usize>,
     pub moves: Vec<Move>,
     pub num_wildcards: usize,
+    pub puzzle_type: PuzzleType,
 }
 
 impl PuzzleType {
@@ -48,13 +50,21 @@ impl PuzzleType {
 pub fn state_from_str(s: &str) -> Vec<usize> {
     let mut state = Vec::new();
     let mut element_map = HashMap::new();
-    let mut next_element = 1;
+
+    // Insert A->1, B->2, C->3, ... , a -> 27, b -> 28, c -> 29, ...
+    let mut i = 1;
+    for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".chars() {
+        element_map.insert(c.to_string(), i);
+        i += 1;
+    }
+
+    // Insert N0 -> 1, N1 -> 2, N2 -> 3, ... N1000 -> 100001
+    for i in 0..10001 {
+        element_map.insert(format!("N{}", i), i + 1);
+    }
+
     for element in s.split(';') {
-        if !element_map.contains_key(element) {
-            element_map.insert(element, next_element);
-            next_element += 1;
-        }
-        state.push(*element_map.get(element).unwrap());
+        state.push(*element_map.get(element).expect(&format!("Unknown element {}", element)));
     }
     state
 }
@@ -70,9 +80,15 @@ pub fn load_puzzles(puzzle_info_path : &str, puzzles_path: &str) -> Result<Vec<P
         let mut moves = Vec::new();
         let moves_data: MoveData = serde_json::from_str(&record[1].replace("'", "\"")).expect("Failed to parse moves data");
         for (name, permutation) in moves_data.data {
+            let perm = Permutation::new(permutation.iter().map(|x| *x + 1).collect());
+            moves.push(Move {
+                name: format!("-{}", name),
+                permutation: perm.inverse(),
+
+            });
             moves.push(Move {
                 name,
-                permutation: Permutation::new(permutation),
+                permutation: perm,
             });
         }
         allowed_moves.insert(puzzle_type, moves);
@@ -83,17 +99,48 @@ pub fn load_puzzles(puzzle_info_path : &str, puzzles_path: &str) -> Result<Vec<P
     for record in puzzles_reader.records() {
         let record = record?;
         let puzzle_type = PuzzleType::from_str(&record[1])?;
-        let goal_state = state_from_str(&record[2]);
+        let goal_state= state_from_str(&record[2]);
         let initial_state = state_from_str(&record[3]);
         let num_wildcards = record[4].parse()?;
         puzzles.push(Puzzle {
+            id: record[0].parse()?,
             initial_state,
             goal_state,
             moves: allowed_moves.get(&puzzle_type).unwrap().clone(),
             num_wildcards,
+            puzzle_type,
         });
     }
     Ok(puzzles)
+}
+
+pub fn moves_to_string(moves: &Vec<Move>) -> String {
+    let mut s = String::new();
+    for (i, m) in moves.iter().enumerate() {
+        if i > 0 {
+            s.push('.');
+        }
+        s.push_str(&m.name);
+    }
+    s
+}
+
+pub fn moves_from_string(s: &str, moves: &Vec<Move>) -> Vec<Move> {
+    let mut result = Vec::new();
+    for name in s.split('.') {
+        let mut found = false;
+        for m in moves {
+            if m.name == name {
+                result.push(m.clone());
+                found = true;
+                break;
+            }
+        }
+        if !found {
+            panic!("Unknown move {}", name);
+        }
+    }
+    result
 }
 
 #[cfg(test)]
@@ -110,17 +157,30 @@ mod tests {
 
     #[test]
     fn test_state_from_str() {
-        assert_eq!(state_from_str("a;b;c"), vec![1, 2, 3]);
-        assert_eq!(state_from_str("a;b;c;a;b;c"), vec![1, 2, 3, 1, 2, 3]);
-        assert_eq!(state_from_str("a;b;c;a;b;c;a;b;c"), vec![1, 2, 3, 1, 2, 3, 1, 2, 3]);
+        assert_eq!(state_from_str("A;B;C"), vec![1, 2, 3]);
+        assert_eq!(state_from_str("B;A;C"), vec![2, 1, 3]);
+        assert_eq!(state_from_str("A;B;C;D;E;F"), vec![1, 2, 3, 4, 5, 6]);
     }
 
     #[test]
     fn test_load_puzzles() {
         let puzzles = load_puzzles("./../../data/puzzle_info.csv", "./../../data/puzzles.csv").unwrap();
         assert_eq!(puzzles.len(), 398);
-        assert_eq!(puzzles[0].initial_state, vec![1, 2, 1, 3, 2, 4, 3, 4, 5, 3, 5, 3, 1, 5, 1, 6, 6, 6, 2, 2, 4, 6, 4, 5]);
-        assert_eq!(puzzles[0].goal_state, vec![1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6,6, 6, 6]);
-        assert_eq!(puzzles[0].moves.len(), 6);
+        assert_eq!(puzzles[0].initial_state, vec![4, 5, 4, 1, 5, 2, 1, 2, 3, 1, 3, 1, 4, 3, 4, 6, 6, 6, 5, 5, 2, 6, 2, 3]);
+    }
+
+    #[test]
+    fn test_solution() {
+        let id = 368;
+        let solution = "-f2.-f2.-r3.-f3.-f4.r3.-f3.-f7.-f2.-f7.-f3.-r3.-f4.-r0.-r1.-f0.r0.-f0.r0.r1.-r0.-f4.r0.r3.-f3.r3.-r3.-f2.-f1.-f5.r3.-f7.-r3.-f5.-f1.-f3.r3.-f2.-f2.-f3.-f2.-f2.-r3.-f3.-f2.r3.-r3.-f4.-f7.-f2.-f7.-f4.r3.-f3.-f0.-f5.-f0.-f3.-f3.-f2.-r0.-f3.r0.-f3.r3.-f2.-f2.-f2.-r3.-f3.-r3.-f4.-f7.-f2.-f7.-f4.r3.-f3.-f0.-f5.-f0.-f3.r3.r3.-f4.r0.-f1.r0.-r0.-r0.-f1.-r3.-f1.r3.-f1.-f4.r3.r3.r3.r3.r2.-f2.-r2.-f2.-r1.-f3.r1.-f3.-f2.r1.-f2.-r1.-f2.-r2.-f2.-f2.r2.-f2.-r1.-f4.-r1.-f4.r1.r1.r1.r1.-f0.r2.-f0.-r1.-r1.-f2.-r2.-f2.-f1.-r2.-f1.-r1.-f2.r1.-f2.r2.-r0.-f0.-f4.-f0.r1.r0.r3.-f3.-r1.-f3.-r2.-f3.-r1.-f4.-r3.-r0.-f5.r0.r1.r2.-f7.-f5.-f7.-r0.-r1.-f0.-f6.-f0.r0.r1.r2.-f0.-r1.-f0.-r1.-r0.-f5.r0.r3.-f4.r1.-f3.r2.-f3.-f1.-r2.-f1.-r1.-f2.r1.-f2.-r1.-r1.-r1.-r0.-f1.r3.-f0.-f0.r0.-f0.r1.-r0.-f3.r0.r3.-f2.-f2.r2.-f2.r1.-f2.-r1.-f2.-r2.-r2.-r2.-r2.-f0.-r1.-f0.-f3.-r2.-f3.-r1.-r1.-f4.r1.-f4.r1.-f2.-r2.-f2.-f2.r2.-f2.r1.-f2.-r1.-f2.-f3.-r1.-f3.r1.-f2.r2.-f2.-r2.r2.-r0.-f0.-f4.-f0.r1.r0.r3.-f3.-r1.-f3.-r2.-f3.-r1.-f4.-r3.-r0.-f5.r0.r1.-r1.-f4.-r1.-f4.r1.r1.-r2.-r0.-f2.r0.r3.-f1.-r1.-r1.-f0.-r0.-r0.-f0.-f0.-r3.-f1.r0.-f0.-r3.-f1.r0.-f0.r0.r0.-f0.-r0.-f5.r0.-r0.-f1.r3.-f0.r3.r3.r3.r3.-f2.-r3.-r0.-f3.r0.-f4.-r0.-f4.r0.-f7.-r0.-f7.-f4.-f4.-f6.-r0.-r0.-f6.-f3.-f2.-f0.-r0.-r0.-f0.-f4.-r3.-r3.-r0.-f1.r3.-f0.-r0.-f5.r0.-f4.-f4.-r0.-f4.r0.-f7.-r0.-f7.-f4.-r0.-f5.r0.-f0.-r3.-f1.r0.-f2.-f0.-f6.r0.-f0.-f2.-f4.r3.-f4.-f1.-r3.-f1.r3.-f1.r0.r0.-r0.-f1.-r0.-f4.-r3.-r3.-f4.-f1.-r3.-f1.r3.-f1.r0.r0.-r0.-f1.-r0.-f4.-r3.-r3.-f7.-f2.-f7.-f5.r0.-f5.r3.-f1.-f1.-r3.-f6.-f4";
+        let puzzle = load_puzzles("./../../data/puzzle_info.csv", "./../../data/puzzles.csv").unwrap()[id].clone();
+        let moves = moves_from_string(solution, &puzzle.moves);
+        // Apply the moves to the initial state
+        let mut state = puzzle.initial_state.clone();
+        println!("Initial state: {:?}", state);
+        for m in &moves {
+            state = m.permutation.apply(&state);
+        }
+        assert_eq!(state, puzzle.goal_state);
     }
 }
