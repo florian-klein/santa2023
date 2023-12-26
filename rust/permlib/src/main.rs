@@ -3,6 +3,8 @@ mod permutation_utils;
 mod permgroups;
 mod schreier;
 mod factorization;
+mod word_length_iter;
+mod minkwitz;
 use permutation::Permutation;
 
 fn main(){

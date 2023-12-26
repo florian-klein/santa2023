@@ -1,4 +1,6 @@
 use crate::Permutation;
+
+#[derive(Debug, Clone)]
 pub struct GeneratingSet {
     pub generators: Vec<Permutation>,
 }
