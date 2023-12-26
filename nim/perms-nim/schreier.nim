@@ -24,10 +24,7 @@ proc orbitTransversal*[N: static[int]](gens: GroupGens[N], alpha: int): array[N,
           new_level.add(y)
 
 
-# Breadth-first search to determine the orbit of alpha point and transversal.
-# For each point it gives:
-#   an optional tuple (index of generator, preimage under that perm).
-proc schreierVector*[N: static[int]](gens: GroupGens[N], alpha: int): array[N, Option[tuple[idx: int, pre: int]]] =
+proc get_schreier_vector*[N: static[int]](gens: GroupGens[N], alpha: int): array[N, Option[tuple[idx: int, pre: int]]] =
   var old_level: seq[int]
   var new_level: seq[int] = @[alpha]
 

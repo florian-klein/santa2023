@@ -1,27 +1,40 @@
 use crate::Permutation;
-// WARN: DO NOT USE
-pub fn cycle_str_to_permutation(cycle_str: &str) -> Permutation {
-    let mut elements = vec![0; cycle_str.len()];
+pub fn parse_permutation_from_cycle(cycle_str: &str, size: usize) -> Permutation {
+    let mut result = Permutation::identity(size);
 
-    let cycle: Vec<&str> = cycle_str.split_whitespace().collect();
-    let cycle: Vec<usize> = cycle.iter().map(|&x| x.parse::<usize>().unwrap()).collect();
+    let cycles: Vec<Vec<usize>> = cycle_str
+        .replace(" ", "")
+        .trim_matches(|c| c == '(' || c == ')')
+        .split(")(")
+        .map(|s| s.split(",").map(|n| n.parse::<usize>().unwrap()).collect::<Vec<usize>>())
+        .map(|mut cycle| { cycle.push(cycle[0]); cycle })
+        .collect();
 
-    for i in 0..cycle.len() {
-        elements[cycle[i]] = cycle[(i + 1) % cycle.len()];
+    for cycle in cycles {
+        for i in 0..cycle.len() - 1 {
+            result.elements[cycle[i]] = cycle[i + 1];
+        }
     }
 
-    Permutation::new(elements)
+    result
 }
 
-pub fn array_string_to_permutation(array_string: &str) -> Permutation {
-    let mut elements = vec![0; array_string.len()];
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    let array: Vec<&str> = array_string.split_whitespace().collect();
-    let array: Vec<usize> = array.iter().map(|&x| x.parse::<usize>().unwrap()).collect();
-
-    for i in 0..array.len() {
-        elements[i] = array[i];
+    #[test]
+    fn test_parse_permutation_from_cycle() {
+        let perm1 = parse_permutation_from_cycle("(1,5,7)(2,6,8)", 10);
+        let perm2 = parse_permutation_from_cycle("(1,5)(3,4,8,2)", 10);
+        assert_eq!(perm1.elements, vec![0, 5, 6, 3, 4, 7, 8, 1, 2, 9]);
+        assert_eq!(perm2.elements, vec![0, 5, 3, 4, 8, 1, 6, 7, 2, 9]);
     }
 
-    Permutation::new(elements)
+    #[test]
+    fn test_permutation_from_cycle() {
+        let cycle = "(0,1)(2)";
+        let perm1 = parse_permutation_from_cycle(cycle, 3);
+        assert_eq!(perm1.elements, vec![1, 0, 2]);
+    }
 }

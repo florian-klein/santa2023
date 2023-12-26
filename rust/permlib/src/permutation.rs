@@ -1,10 +1,11 @@
 use std::ops::Mul;
 use std::ops::MulAssign;
 
-#[derive(Debug)]
 #[derive(Clone)]
+#[derive(PartialEq)]
+#[derive(Debug)]
 pub struct Permutation {
-    elements: Vec<usize>,
+    pub elements: Vec<usize>,
 }
 
 impl Permutation {
@@ -37,6 +38,54 @@ impl Permutation {
         Permutation::new(result)
     }
 
+    pub fn identity(n: usize) -> Permutation {
+        let mut result = vec![0; n];
+        for i in 0..n {
+            result[i] = i;
+        }
+        Permutation::new(result)
+    }
+
+    pub fn is_identity(&self) -> bool {
+        for (i, &element) in self.elements.iter().enumerate() {
+            if i != element {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+// implement string representation in cycle format 
+impl std::fmt::Display for Permutation {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let mut result = String::from("(");
+        let mut current_cycle = vec![];
+        let mut visited = vec![false; self.elements.len()];
+
+        for i in 0..self.elements.len() {
+            if !visited[i] {
+                current_cycle.push(i);
+                visited[i] = true;
+                let mut next = self.elements[i];
+                while next != i {
+                    current_cycle.push(next);
+                    visited[next] = true;
+                    next = self.elements[next];
+                }
+                // if the cycle is not a single element, add it to the result 
+                if current_cycle.len() > 1 {
+                    result.push_str(&current_cycle.iter().map(|&x| x.to_string()).collect::<Vec<String>>().join(","));
+                    result.push_str(")(");
+                }
+                current_cycle = vec![];
+            }
+        }
+        result.pop();
+        result.pop();
+        result.push(')');
+        write!(f, "{}", result)
+    }
 }
 
 impl Mul for Permutation {
@@ -54,6 +103,8 @@ impl MulAssign for Permutation {
         self.elements = rhs.elements.iter().map(|&i| self.elements[i]).collect();
     }
 }
+
+
 
 #[cfg(test)]
 mod tests {
@@ -106,6 +157,7 @@ mod tests {
         let perm2 = perm1.clone();
         assert_eq!(perm1.elements, perm2.elements);
     }
+
 
 }
 

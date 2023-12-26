@@ -2,6 +2,7 @@ mod permutation;
 mod permutation_utils;
 mod permgroups;
 mod schreier;
+mod factorization;
 use permutation::Permutation;
 
 fn main(){
