@@ -92,6 +92,18 @@ proc composeSeq*[N: static[int]](gens: GroupGens[N], list: seq[int]): Perm[N] =
   for i in list:
     result = result * gens[i].perm
 
+proc get_str_repr*[N: static[int]](gens: GroupGens[N], list: seq[int]): string =
+  result = ""
+  for i in list:
+    var name = gens[i].name 
+    if gens[i].name[len(gens[i].name)-1] == '\'':
+      # remove ' from the name and add - in front of it 
+      name = name[0..len(name)-2]
+    else:
+      name = "-" & name
+    result.add(name)
+    result.add(".")
+  return result[0..len(result)-2]
 
 # Helper to group indices for `factorNames` concise format.
 # warning: assumes list does not start with -1
