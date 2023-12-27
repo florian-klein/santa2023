@@ -1,3 +1,4 @@
+use crate::permutation::Permutation;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -12,5 +13,7 @@ impl SchreierSimsAlgorithm {
         todo!("Implement Schreier-Sims algorithm");
     }
 
-    pub fn get_stabilizer_and_ 
+    pub fn get_stabilizer_and_orbit(gen_to_str: HashMap<Permutation, String>) {
+        todo!("Implement Schreier-Sims algorithm");
+    }
 }

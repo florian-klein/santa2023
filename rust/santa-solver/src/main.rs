@@ -64,7 +64,18 @@ fn main() {
         })
         .cloned()
         .collect();
-    info!("Solving {} wreath puzzles", wreath_puzzles.len());
-    let results = wreath::solve_puzzles(&wreath_puzzles);
+    /*
+        let wreath_puzzles: Vec<puzzle::Puzzle> = puzzles.iter().filter(|p| {
+            if let puzzle::PuzzleType::WREATH(n) = p.puzzle_type {
+                n > 12  // We have already solved wreath puzzles of size <=12
+            } else {
+                false
+            }
+        }).cloned().collect();
+    >>>>>>> 0c62b2c1312d64ba1a7c43b73f916a45beb066d9
+        info!("Solving {} wreath puzzles", wreath_puzzles.len());
+        let results = wreath::solve_puzzles(&wreath_puzzles); */
+    info!("Solving puzzles using KTT");
+    let results = ktt_solver::solve_puzzles(&puzzles);
     write_solution_to_file(solution_path, &results);
 }
