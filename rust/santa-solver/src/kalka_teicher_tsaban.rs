@@ -248,4 +248,79 @@ mod tests {
         println!("target: {:?}", target);
         assert_eq!(result_perm, target);
     }
+
+    #[test]
+    fn factorize_larger() {
+        let gen1 = Permutation::parse_permutation_from_cycle("(1,2)", 10);
+        let gen2 = Permutation::parse_permutation_from_cycle("(2,3)", 10);
+        let gen3 = Permutation::parse_permutation_from_cycle("(3,4)", 10);
+        let gen4 = Permutation::parse_permutation_from_cycle("(4,5)", 10);
+        let gen5 = Permutation::parse_permutation_from_cycle("(5,6)", 10);
+        let gen6 = Permutation::parse_permutation_from_cycle("(6,7)", 10);
+        let gen7 = Permutation::parse_permutation_from_cycle("(7,8)", 10);
+        let gen8 = Permutation::parse_permutation_from_cycle("(8,9)", 10);
+        let gen9 = Permutation::parse_permutation_from_cycle("(9,10)", 10);
+        let gen1_inv = gen1.inverse();
+        let gen2_inv = gen2.inverse();
+        let gen3_inv = gen3.inverse();
+        let gen4_inv = gen4.inverse();
+        let gen5_inv = gen5.inverse();
+        let gen6_inv = gen6.inverse();
+        let gen7_inv = gen7.inverse();
+        let gen8_inv = gen8.inverse();
+        let gen9_inv = gen9.inverse();
+
+        let mut gen_to_str: HashMap<Permutation, String> = HashMap::new();
+        let mut str_to_gen: HashMap<String, Permutation> = HashMap::new();
+        gen_to_str.insert(gen1.clone(), "gen1".to_string());
+        gen_to_str.insert(gen2.clone(), "gen2".to_string());
+        gen_to_str.insert(gen3.clone(), "gen3".to_string());
+        gen_to_str.insert(gen4.clone(), "gen4".to_string());
+        gen_to_str.insert(gen5.clone(), "gen5".to_string());
+        gen_to_str.insert(gen6.clone(), "gen6".to_string());
+        gen_to_str.insert(gen7.clone(), "gen7".to_string());
+        gen_to_str.insert(gen8.clone(), "gen8".to_string());
+        gen_to_str.insert(gen9.clone(), "gen9".to_string());
+        gen_to_str.insert(gen1_inv.clone(), "-gen1".to_string());
+        gen_to_str.insert(gen2_inv.clone(), "-gen2".to_string());
+        gen_to_str.insert(gen3_inv.clone(), "-gen3".to_string());
+        gen_to_str.insert(gen4_inv.clone(), "-gen4".to_string());
+        gen_to_str.insert(gen5_inv.clone(), "-gen5".to_string());
+        gen_to_str.insert(gen6_inv.clone(), "-gen6".to_string());
+        gen_to_str.insert(gen7_inv.clone(), "-gen7".to_string());
+        gen_to_str.insert(gen8_inv.clone(), "-gen8".to_string());
+        gen_to_str.insert(gen9_inv.clone(), "-gen9".to_string());
+
+        str_to_gen.insert("gen1".to_string(), gen1.clone());
+        str_to_gen.insert("gen2".to_string(), gen2.clone());
+        str_to_gen.insert("gen3".to_string(), gen3.clone());
+        str_to_gen.insert("gen4".to_string(), gen4.clone());
+        str_to_gen.insert("gen5".to_string(), gen5.clone());
+        str_to_gen.insert("gen6".to_string(), gen6.clone());
+        str_to_gen.insert("gen7".to_string(), gen7.clone());
+        str_to_gen.insert("gen8".to_string(), gen8.clone());
+        str_to_gen.insert("gen9".to_string(), gen9.clone());
+
+        str_to_gen.insert("-gen1".to_string(), gen1_inv.clone());
+        str_to_gen.insert("-gen2".to_string(), gen2_inv.clone());
+        str_to_gen.insert("-gen3".to_string(), gen3_inv.clone());
+        str_to_gen.insert("-gen4".to_string(), gen4_inv.clone());
+        str_to_gen.insert("-gen5".to_string(), gen5_inv.clone());
+        str_to_gen.insert("-gen6".to_string(), gen6_inv.clone());
+        str_to_gen.insert("-gen7".to_string(), gen7_inv.clone());
+        str_to_gen.insert("-gen8".to_string(), gen8_inv.clone());
+        str_to_gen.insert("-gen9".to_string(), gen9_inv.clone());
+        let target = Permutation::new(vec![1, 2, 3, 4, 5, 6, 7, 9, 8, 10]);
+        let result = factorize(gen_to_str, &target).unwrap();
+        println!("result: {:?}", result);
+        // check if result is correct (factorization results in target permutation)
+        let mut result_perm = Permutation::identity(10);
+        for move_name in result.split(".") {
+            let move_perm = str_to_gen.get(move_name).unwrap();
+            result_perm = move_perm.compose(&result_perm);
+        }
+        println!("result: {:?}", result_perm);
+        println!("target: {:?}", target);
+        assert_eq!(result_perm, target);
+    }
 }
