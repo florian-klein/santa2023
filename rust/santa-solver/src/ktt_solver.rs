@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use log::info;
+use log::{info, warn};
 use crate::puzzle::{Puzzle, PuzzleType};
 use crate::kalka_teicher_tsaban::factorize;
 use crate::permutation::{get_permutation, Permutation};
@@ -8,9 +8,9 @@ pub fn solve_puzzles(puzzles: &Vec<Puzzle>) -> HashMap<usize, String> {
     let mut results = HashMap::new();
     for puzzle in puzzles {
         // Determine whether the puzzle only has unique elements and no wildcards
-        if puzzle.num_wildcards > 0 {
+        /*if puzzle.num_wildcards > 0 {
             continue;
-        }
+        } */
         if puzzle.puzzle_type != PuzzleType::GLOBE(3, 4) {
             continue;
         }
@@ -26,6 +26,11 @@ pub fn solve_puzzles(puzzles: &Vec<Puzzle>) -> HashMap<usize, String> {
         // TODO: Move map to puzzle types
         let mut generator_names: HashMap<Permutation, String> = HashMap::new();
         for move_ in puzzle.moves.iter() {
+            if (generator_names.contains_key(&move_.permutation)) {
+                warn!("Duplicate generator for permutation {:?} and {:?}", move_.name, generator_names.get(&move_.permutation).unwrap());
+                warn!("Permutation {:?} will be ignored", move_.permutation.compute_info().cycles);
+                continue;
+            }
             generator_names.insert(move_.permutation.clone(), move_.name.clone());
         }
         let factorization = factorize(&generator_names, &target);

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::error::Error;
 use csv;
+use log::warn;
 use serde::Deserialize;
 use crate::permutation::Permutation;
 
@@ -85,11 +86,13 @@ pub fn load_puzzles(puzzle_info_path : &str, puzzles_path: &str) -> Result<Vec<P
         let moves_data: MoveData = serde_json::from_str(&record[1].replace("'", "\"")).expect("Failed to parse moves data");
         for (name, permutation) in moves_data.data {
             let perm = Permutation::new(permutation.iter().map(|x| *x + 1).collect());
-            moves.push(Move {
-                name: format!("-{}", name),
-                permutation: perm.inverse(),
+            if perm != perm.inverse() {
+                moves.push(Move {
+                    name: format!("-{}", name),
+                    permutation: perm.inverse(),
 
-            });
+                });
+            }
             moves.push(Move {
                 name,
                 permutation: perm,

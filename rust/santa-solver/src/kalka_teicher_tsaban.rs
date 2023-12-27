@@ -1,7 +1,7 @@
 use crate::groups::PermutationGroupIterator;
 use crate::permutation::{Permutation, PermutationInfo};
 use std::collections::{HashMap, HashSet};
-use log::debug;
+use log::{debug, warn};
 
 fn to_2_cycle(p: &PermutationInfo) -> Vec<Vec<usize>> {
     let cycles = &p.cycles; // disjoint cycles of arbitrary length
@@ -13,10 +13,9 @@ fn to_2_cycle(p: &PermutationInfo) -> Vec<Vec<usize>> {
         } else if cycle.len() == 2 {
             result.push(cycle.clone());
         } else {
-            for i in 0..(cycle.len() - 1) {
-                result.push(vec![cycle[i], cycle[i + 1]]);
+            for i in 1..cycle.len() {  // TODO: Find all possible 2-cycle decompositions
+                result.push(vec![cycle[0], cycle[i]]);
             }
-            result.push(vec![cycle[cycle.len() - 1], cycle[0]]);
         }
     }
     result
@@ -40,7 +39,12 @@ fn find_c_cycle(
     let generator = PermutationGroupIterator::new(gen_to_str.clone());
     let mut mu;
     let mut path: String = "".to_string();
+    let mut i = 0;
     for (tau_path, tau) in generator {
+        i += 1;
+        if i % 100 == 0 {
+            debug!("Generators tried: {:?}", i);
+        }
         'inner: for m in 1..=n {
             // Check whether tau.pow(m) is a c-cycle
             let tau_pow = tau.pow(m);
@@ -145,7 +149,18 @@ pub fn factorize(gen_to_str: &HashMap<Permutation, String>, target: &Permutation
         }
         // check if we could find elements in next iteration
         if a_l.is_empty() {
-            eprintln!("Error: A_l is empty");
+            warn!("Error: A_l is empty");
+            debug!("a_union: {:?}", a_union);
+            debug!("a_union length: {:?}", a_union.len());
+            debug!("c_set length: {:?}", c_set.len());
+            // Print the number of elements in c_set that are not in a_union
+            let mut missing = 0;
+            for c in &c_set {
+                if !a_union.contains_key(c) {
+                    missing += 1;
+                }
+            }
+            debug!("missing: {:?}", missing);
             return None;
         }
         // add A_{l} to A_union by extending A_union
