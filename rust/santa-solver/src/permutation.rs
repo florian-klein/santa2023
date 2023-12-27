@@ -24,7 +24,19 @@ impl Permutation {
     }
 
     pub fn from_cycles(cycles: &Vec<Vec<usize>>) -> Permutation {
+        // warn: does not work when not all elements are visible in cycle (e.g [1,2] instead of
+        // [1,2][3]
         let mut p = vec![0; cycles.iter().map(|c| c.len()).sum()];
+        for cycle in cycles {
+            for i in 0..cycle.len() {
+                p[cycle[i] - 1] = cycle[(i + 1) % cycle.len()];
+            }
+        }
+        Permutation::new(p)
+    }
+
+    pub fn from_cycles_fixed_per_size(cycles: &Vec<Vec<usize>>, perm_size: usize) -> Permutation {
+        let mut p = (1..=perm_size).collect::<Vec<usize>>();
         for cycle in cycles {
             for i in 0..cycle.len() {
                 p[cycle[i] - 1] = cycle[(i + 1) % cycle.len()];
@@ -119,6 +131,26 @@ impl Permutation {
             signum,
         }
     }
+
+    pub fn parse_permutation_from_cycle(cycle_str: &str, size: usize) -> Permutation {
+        let mut elements = (1..=size).collect::<Vec<usize>>();
+
+        let cycles: Vec<Vec<usize>> = cycle_str
+            .replace(" ", "")
+            .trim_matches(|c| c == '(' || c == ')')
+            .split(")(")
+            .map(|s| s.split(",").map(|n| n.parse::<usize>().unwrap()).collect::<Vec<usize>>())
+            .map(|mut cycle| { cycle.push(cycle[0]); cycle })
+            .collect();
+
+        for cycle in cycles {
+            for i in 0..(cycle.len() - 1) {
+                elements[cycle[i] - 1] = cycle[i + 1];
+            }
+        }
+
+        Permutation::new(elements)
+    }
 }
 
 impl Display for Permutation {
@@ -176,6 +208,8 @@ impl CompressedPermutation {
         }
         CompressedPermutation::new(m)
     }
+
+
 }
 
 impl Display for CompressedPermutation {
@@ -213,6 +247,13 @@ mod permutation_tests {
         let cycles = vec![vec![1, 2, 3], vec![4, 5]];
         let p = Permutation::from_cycles(&cycles);
         assert_eq!(p.p, vec![2, 3, 1, 5, 4]);
+    }
+
+    #[test]
+    fn test_from_cycles_with_specified_size() {
+        let cycles = vec![vec![2, 3]];
+        let p = Permutation::from_cycles_fixed_per_size(&cycles, 5);
+        assert_eq!(p.p, vec![1, 3, 2, 4, 5]);
     }
 
     #[test]
@@ -315,6 +356,13 @@ mod permutation_tests {
         let p = Permutation::new(vec![2, 6, 3, 5, 4, 1]);
         let info = p.compute_info();
         assert_eq!(format!("{}", info), "[[1, 2, 6], [3], [4, 5]] (odd)");
+    }
+
+    #[test]
+    fn test_parse_permutation_from_cycle() {
+        let cycle_str = "(2,3)(4,5)";
+        let p = Permutation::parse_permutation_from_cycle(cycle_str, 5);
+        assert_eq!(p.p, vec![1, 3, 2, 5, 4]);
     }
 }
 
