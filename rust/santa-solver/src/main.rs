@@ -8,7 +8,6 @@ mod puzzle;
 mod wreath;
 mod kalka_teicher_tsaban;
 mod groups;
-mod config;
 
 
 fn write_solution_to_file(solution_path: &str, results: &HashMap<usize, String>) {
@@ -23,7 +22,6 @@ fn write_solution_to_file(solution_path: &str, results: &HashMap<usize, String>)
 
 fn main() {
     env_logger::init();
-    let config = config::Config::new(vec!["kalka_teicher_tsaban".to_string()]).unwrap();
 
     let args: Vec<String> = std::env::args().collect();
     let puzzle_info_path = if args.len() > 1 { &args[1] } else { "./../../data/puzzle_info.csv" };
