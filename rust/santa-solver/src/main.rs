@@ -8,6 +8,7 @@ mod puzzle;
 mod wreath;
 mod kalka_teicher_tsaban;
 mod groups;
+mod ktt_solver;
 
 
 fn write_solution_to_file(solution_path: &str, results: &HashMap<usize, String>) {
