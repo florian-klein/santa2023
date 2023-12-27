@@ -7,8 +7,15 @@ pub fn parse_permutation_from_cycle(cycle_str: &str, size: usize) -> Permutation
         .replace(" ", "")
         .trim_matches(|c| c == '(' || c == ')')
         .split(")(")
-        .map(|s| s.split(",").map(|n| n.parse::<usize>().unwrap()).collect::<Vec<usize>>())
-        .map(|mut cycle| { cycle.push(cycle[0]); cycle })
+        .map(|s| {
+            s.split(",")
+                .map(|n| n.parse::<usize>().unwrap())
+                .collect::<Vec<usize>>()
+        })
+        .map(|mut cycle| {
+            cycle.push(cycle[0]);
+            cycle
+        })
         .collect();
 
     for cycle in cycles {
@@ -23,7 +30,7 @@ pub fn parse_permutation_from_cycle(cycle_str: &str, size: usize) -> Permutation
 pub fn word_to_perm(word: &str, label_to_gen: HashMap<&str, Permutation>) -> Permutation {
     let mut words = word.split(".");
     let mut result = Permutation::identity(label_to_gen.len());
-    
+
     while let Some(w) = words.next() {
         if let Some(gen) = label_to_gen.get(w) {
             result = result * gen.clone();

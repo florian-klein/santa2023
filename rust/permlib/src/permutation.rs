@@ -1,9 +1,7 @@
 use std::ops::Mul;
 use std::ops::MulAssign;
 
-#[derive(Clone)]
-#[derive(PartialEq)]
-#[derive(Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Permutation {
     pub elements: Vec<usize>,
 }
@@ -22,7 +20,7 @@ impl Permutation {
 
         Permutation::new(result)
     }
-    
+
     // example perm = (0, 1)(2); perm.apply_to_single_element(0) = 1
     pub fn apply_to_single_element(&self, element: usize) -> usize {
         self.elements[element]
@@ -56,7 +54,7 @@ impl Permutation {
     }
 }
 
-// implement string representation in cycle format 
+// implement string representation in cycle format
 impl std::fmt::Display for Permutation {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let mut result = String::from("(");
@@ -73,9 +71,15 @@ impl std::fmt::Display for Permutation {
                     visited[next] = true;
                     next = self.elements[next];
                 }
-                // if the cycle is not a single element, add it to the result 
+                // if the cycle is not a single element, add it to the result
                 if current_cycle.len() > 1 {
-                    result.push_str(&current_cycle.iter().map(|&x| x.to_string()).collect::<Vec<String>>().join(","));
+                    result.push_str(
+                        &current_cycle
+                            .iter()
+                            .map(|&x| x.to_string())
+                            .collect::<Vec<String>>()
+                            .join(","),
+                    );
                     result.push_str(")(");
                 }
                 current_cycle = vec![];
@@ -93,7 +97,8 @@ impl Mul for Permutation {
 
     // Combine two permutations by composing their actions
     fn mul(self, rhs: Permutation) -> Permutation {
-        let combined_elements: Vec<usize> = rhs.elements.iter().map(|&i| self.elements[i]).collect();
+        let combined_elements: Vec<usize> =
+            rhs.elements.iter().map(|&i| self.elements[i]).collect();
         Permutation::new(combined_elements)
     }
 }
@@ -104,8 +109,6 @@ impl MulAssign for Permutation {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -114,7 +117,10 @@ mod tests {
     fn test_apply_to_other_permutation() {
         let perm1 = Permutation::new(vec![2, 0, 1]);
         let perm2 = Permutation::new(vec![1, 2, 0]);
-        assert_eq!(perm1.apply_to_other_permutation(&perm2).elements, vec![0, 1, 2]);
+        assert_eq!(
+            perm1.apply_to_other_permutation(&perm2).elements,
+            vec![0, 1, 2]
+        );
     }
 
     #[test]
@@ -157,7 +163,4 @@ mod tests {
         let perm2 = perm1.clone();
         assert_eq!(perm1.elements, perm2.elements);
     }
-
-
 }
-

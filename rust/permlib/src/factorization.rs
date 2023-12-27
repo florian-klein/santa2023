@@ -1,22 +1,23 @@
 use crate::permgroups;
-use crate::Permutation;
-use crate::permutation_utils;
 use crate::schreier;
+use crate::Permutation;
 use std::collections::HashMap;
 
-pub struct Factorizer {
-}
+pub struct Factorizer {}
 
 impl Factorizer {
-    
-    pub fn find_generators_and_base(genset: &permgroups::GeneratingSet, k: usize) -> (Vec<Permutation>, Vec<Vec<usize>>) {
+    pub fn find_generators_and_base(
+        genset: &permgroups::GeneratingSet,
+        k: usize,
+    ) -> (Vec<Permutation>, Vec<Vec<usize>>) {
         let mut cur_gens = genset.generators.clone();
         let mut base = vec![];
 
         for i in 0..k {
             let mut cur_genset = permgroups::GeneratingSet::new(cur_gens.clone());
             cur_genset = Factorizer::sims_filter(&cur_genset);
-            let (gens, orbits) = schreier::SchreierVector::get_stab_gens_and_orbits(&cur_genset, i, k);
+            let (gens, orbits) =
+                schreier::SchreierVector::get_stab_gens_and_orbits(&cur_genset, i, k);
             println!("gens: {:?}, orbits: {:?}", gens, orbits);
 
             base.push(orbits);
@@ -32,10 +33,10 @@ impl Factorizer {
 
         (cur_gens, base)
     }
-    /** 
+    /**
      * Given a set A \subseteq S_n, there is an effective algorithm to replace A by some B\subseteq S_n satisfying \left<A\right> = \left<B\right> and
      * B is shorter
-    */
+     */
     fn j_permutation(perm: &Permutation) -> (usize, usize) {
         let mut i = 0;
         let mut j = 0;
@@ -79,16 +80,14 @@ impl Factorizer {
                 }
             }
         }
-    
+
         permgroups::GeneratingSet::new(new_gens)
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
 
     #[test]
     fn test_find_generators_for_fixation_group() {
@@ -118,7 +117,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sims_filter_small(){
+    fn test_sims_filter_small() {
         let perm1 = permutation_utils::parse_permutation_from_cycle("(1,2)", 4);
         let perm2 = permutation_utils::parse_permutation_from_cycle("(2,1)", 4);
         let perm3 = permutation_utils::parse_permutation_from_cycle("(3,1)", 4);
@@ -126,7 +125,8 @@ mod tests {
         let perm5 = perm1.clone() * perm3.clone();
         let perm6 = perm2.clone() * perm3.clone();
         let perm7 = perm1.clone() * perm2.clone() * perm3.clone();
-        let generating_set = permgroups::GeneratingSet::new(vec![perm1, perm2, perm3, perm4, perm5, perm6, perm7]);
+        let generating_set =
+            permgroups::GeneratingSet::new(vec![perm1, perm2, perm3, perm4, perm5, perm6, perm7]);
         let gens = Factorizer::sims_filter(&generating_set);
         for perm in &gens.generators {
             println!("{}", perm);

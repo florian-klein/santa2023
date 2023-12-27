@@ -1,13 +1,13 @@
+mod factorization;
+mod minkwitz;
+mod permgroups;
 mod permutation;
 mod permutation_utils;
-mod permgroups;
 mod schreier;
-mod factorization;
 mod word_length_iter;
-mod minkwitz;
 use permutation::Permutation;
 
-fn main(){
+fn main() {
     let perm1 = Permutation::new(vec![2, 0, 1]);
     println!("{:?}", perm1);
     println!("{:?}", perm1.inverse());

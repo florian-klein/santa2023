@@ -1,24 +1,22 @@
-use crate::permgroups;
-use crate::Permutation;
-use crate::permutation_utils;
 use crate::factorization::Factorizer;
+use crate::permgroups;
+use crate::permutation_utils;
 use crate::word_length_iter::WordIterator;
+use crate::Permutation;
 use std::collections::HashMap;
 
-pub struct MinkWitz{
-
-}
+pub struct MinkWitz {}
 
 impl MinkWitz {
-     pub fn minkwitz_table(
-            genset: &permgroups::GeneratingSet,
-            label_to_gen: HashMap<&str, Permutation>,
-            max_word_size: usize,
-            permutation_size: usize,
-    ) -> HashMap<(usize, usize), String>{
+    pub fn minkwitz_table(
+        genset: &permgroups::GeneratingSet,
+        label_to_gen: HashMap<&str, Permutation>,
+        max_word_size: usize,
+        permutation_size: usize,
+    ) -> HashMap<(usize, usize), String> {
         let (_, base) = Factorizer::find_generators_and_base(genset, permutation_size);
         let mut b_i_x: HashMap<(usize, usize), String> = HashMap::new(); // Change the type to String
-        let generator_words : Vec<&str> = label_to_gen.keys().map(|&x| x).collect();
+        let generator_words: Vec<&str> = label_to_gen.keys().map(|&x| x).collect();
 
         for word_len in 1..=max_word_size {
             let mut word_iterator = WordIterator::new(&generator_words, word_len);
@@ -49,46 +47,50 @@ impl MinkWitz {
     }
 
     pub fn search_factorization(
-            goal_perm: &Permutation,
-            genset: &permgroups::GeneratingSet,
-            label_to_gen: HashMap<&str, Permutation>,
-            max_word_size: usize,
-            permutation_size: usize,
-        ) -> Option<String> {
-            let b_i_x = MinkWitz::minkwitz_table(genset, label_to_gen.clone(), max_word_size, permutation_size);
-            println!("b_i_x: {:?}", b_i_x);
-            let labels: Vec<&str> = label_to_gen.keys().map(|&x| x).collect();
-            let mut word_iterator = WordIterator::new(&labels, max_word_size);
+        goal_perm: &Permutation,
+        genset: &permgroups::GeneratingSet,
+        label_to_gen: HashMap<&str, Permutation>,
+        max_word_size: usize,
+        permutation_size: usize,
+    ) -> Option<String> {
+        let b_i_x = MinkWitz::minkwitz_table(
+            genset,
+            label_to_gen.clone(),
+            max_word_size,
+            permutation_size,
+        );
+        println!("b_i_x: {:?}", b_i_x);
+        let labels: Vec<&str> = label_to_gen.keys().map(|&x| x).collect();
+        let mut word_iterator = WordIterator::new(&labels, max_word_size);
 
-            let mut shortest_representation: Option<String> = None;
+        let mut shortest_representation: Option<String> = None;
 
-            for _ in 0..1000 {
-                let word = word_iterator.next();
-                if word.is_none() {
-                    break;
-                }
-                let word = word.unwrap();
-                let h = permutation_utils::word_to_perm(&word, label_to_gen.clone());
-                let h_inv_goal = h.inverse() * goal_perm.clone();
+        for _ in 0..1000 {
+            let word = word_iterator.next();
+            if word.is_none() {
+                break;
+            }
+            let word = word.unwrap();
+            let h = permutation_utils::word_to_perm(&word, label_to_gen.clone());
+            let h_inv_goal = h.inverse() * goal_perm.clone();
 
-                if let Some(w_prime) = b_i_x.get(&(0, h_inv_goal.apply_to_single_element(0))) {
-                    let representation = format!("{}.{}", word, w_prime);
+            if let Some(w_prime) = b_i_x.get(&(0, h_inv_goal.apply_to_single_element(0))) {
+                let representation = format!("{}.{}", word, w_prime);
 
-                    match shortest_representation {
-                        Some(ref current_shortest) if representation.len() < current_shortest.len() => {
-                            shortest_representation = Some(representation);
-                        }
-                        None => {
-                            shortest_representation = Some(representation);
-                        }
-                        _ => {}
+                match shortest_representation {
+                    Some(ref current_shortest) if representation.len() < current_shortest.len() => {
+                        shortest_representation = Some(representation);
                     }
+                    None => {
+                        shortest_representation = Some(representation);
+                    }
+                    _ => {}
                 }
             }
+        }
 
-            shortest_representation
+        shortest_representation
     }
-
 }
 
 #[cfg(test)]
@@ -96,7 +98,7 @@ mod test {
     use super::*;
 
     #[test]
-    pub fn test_minkwitz_small(){
+    pub fn test_minkwitz_small() {
         let mut label_to_gen: HashMap<&str, Permutation> = HashMap::new();
         let perm1 = permutation_utils::parse_permutation_from_cycle("(0,1)", 3);
         let perm2 = permutation_utils::parse_permutation_from_cycle("(1,2)", 3);
@@ -107,11 +109,12 @@ mod test {
         label_to_gen.insert("c", perm3.clone());
         label_to_gen.insert("d", perm4.clone());
 
-        let genset = permgroups::GeneratingSet::new(vec![perm1.clone(), perm2.clone(), perm3, perm4]);
+        let genset =
+            permgroups::GeneratingSet::new(vec![perm1.clone(), perm2.clone(), perm3, perm4]);
         let max_word_size = 3;
         let b_i_x = MinkWitz::minkwitz_table(&genset, label_to_gen.clone(), max_word_size, 3);
         println!("b_i_x: {:?}", b_i_x);
-        // let goal_perm = perm1.clone() * perm2.clone() * perm1.clone() * perm2.clone(); 
+        // let goal_perm = perm1.clone() * perm2.clone() * perm1.clone() * perm2.clone();
         // let factorization = MinkWitz::search_factorization(&goal_perm, &genset, label_to_gen.clone(), max_word_size, 3);
         // let evaluated_factorization = permutation_utils::word_to_perm(&factorization.unwrap(), label_to_gen.clone());
         // println!("------------------");
@@ -121,5 +124,3 @@ mod test {
         assert_eq!(0, 1);
     }
 }
-
-
