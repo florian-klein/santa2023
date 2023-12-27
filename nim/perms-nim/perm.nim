@@ -301,8 +301,9 @@ proc orderFrom(sgn: Signature, max = 0): int {.noSideEffect.} =
         return -1
 
 
-proc orderToCycleFrom[N: static[int]](sgn: Signature[N], n: int, max = 0): int {.noSideEffect.} =
+proc orderToCycleFrom[N: static[int]](sgn: Signature[N], n: int, max = 0): int  =
   # there must be unique n-cycle
+  echo "n, N, sgn[n]: ", n, ", ", N, ", ", sgn[n], "\n"
   if n > N or sgn[n] != 1:
     return -1
 
@@ -330,6 +331,7 @@ proc orderToCycle*(p: Perm, n: int, max = 0): int =
   if n < 2:
     -1
   else:
+    # echo "orderToCycle: ", p.signature
     orderToCycleFrom(p.signature, n, max)
 
 
@@ -404,7 +406,7 @@ proc parsePermFromArrayFormat*(N: static[int], data: string): Perm[N] =
       part = parseInt(cur_element)
     except ValueError:
       raise PermError.newException("invalid permutation format")
-    parts[part] = Point(i)
+    parts[i] = Point(part)
   return parts
 
 proc cycles*[N: static[int]](p: Perm[N]): seq[Cycle[N]] =

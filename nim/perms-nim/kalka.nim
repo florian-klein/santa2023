@@ -27,6 +27,7 @@ proc searchCycle*[N: static[int]](gens: GroupGens[N]; length, levels: int; max =
   for p, i, level in gens.multiSearch(levels):
     let o = p.orderToCycle(length, max)
     if o > -1:
+      echo "FOUND: ", o, " <- ", i, ":", level
       let c = p.power(o).cycles[0]
       if not result.c.contains(c):
         var s = decodeIndex(i, level, gens.len)
