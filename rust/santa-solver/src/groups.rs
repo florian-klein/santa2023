@@ -1,11 +1,12 @@
 use crate::permutation::Permutation;
 use std::collections::HashMap;
 use std::collections::{HashSet, VecDeque};
+use std::str::FromStr;
 
 pub struct PermutationGroupIterator<'a> {
     frontier: VecDeque<(&'a str, Permutation)>,
     visited: HashSet<Permutation>,
-    queue: Vec<Permutation>,
+    queue: VecDeque<(&'a str, Permutation)>,
     gen_to_str: &'a HashMap<Permutation, String>,
 }
 
@@ -20,7 +21,7 @@ impl<'a> PermutationGroupIterator<'a> {
         Self {
             frontier,
             visited: HashSet::new(),
-            queue: Vec::new(),
+            queue: VecDeque::new(),
             gen_to_str,
         }
     }
@@ -32,14 +33,17 @@ impl<'a> Iterator for PermutationGroupIterator<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         if self.frontier.is_empty() {
             if !self.queue.is_empty() {
-                let element = self.queue.remove(0);
+                let (element_path, element_perm) = self.queue.pop_front().unwrap();
                 // iterate over gen_to_str keys
                 for generator in self.gen_to_str.keys() {
-                    let new_element = generator.compose(&element);
+                    let new_element = generator.compose(&element_perm);
                     let generator_name = self.gen_to_str.get(generator).unwrap();
                     if !self.visited.contains(&new_element) {
+                        let mut new_path = String::from_str(element_path).unwrap();
+                        new_path.push('.');
+                        new_path.push_str(generator_name.as_str());
                         self.frontier
-                            .push_back((generator_name.as_str(), new_element));
+                            .push_back((new_path.as_str(), new_element));
                     }
                 }
             } else {
@@ -53,7 +57,7 @@ impl<'a> Iterator for PermutationGroupIterator<'a> {
         let (element_path, perm) = result.unwrap();
 
         self.visited.insert(perm.clone());
-        self.queue.push(perm.clone());
+        self.queue.push_back((element_path, perm.clone()));
         return Some((element_path, perm));
     }
 }
