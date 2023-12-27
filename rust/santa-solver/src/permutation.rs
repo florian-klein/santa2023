@@ -15,7 +15,7 @@ pub struct PermutationInfo<'s> {
 
 #[derive(Debug, Clone)]
 pub struct CompressedPermutation {
-    m: HashMap<usize, usize>
+    m: HashMap<usize, usize>,
 }
 
 impl Permutation {
@@ -111,6 +111,7 @@ impl Permutation {
     pub fn compute_info(&self) -> PermutationInfo {
         let mut cycles = Vec::new();
         let mut visited = vec![false; self.len()];
+        let mut even_cycles = 0;
         for i in 0..self.len() {
             if !visited[i] {
                 let mut cycle = Vec::new();
@@ -120,11 +121,14 @@ impl Permutation {
                     cycle.push(j + 1);
                     j = self.p[j] - 1;
                 }
+                if cycle.len() % 2 == 0 {
+                    even_cycles += 1;
+                }
                 cycles.push(cycle);
             }
         }
         // The permutation is even iff the number of even cycles is even
-        let signum = cycles.iter().filter(|c| c.len() % 2 == 0).count() % 2 == 0;
+        let signum = even_cycles % 2 == 0;
         PermutationInfo {
             permutation: self,
             cycles,
@@ -139,8 +143,15 @@ impl Permutation {
             .replace(" ", "")
             .trim_matches(|c| c == '(' || c == ')')
             .split(")(")
-            .map(|s| s.split(",").map(|n| n.parse::<usize>().unwrap()).collect::<Vec<usize>>())
-            .map(|mut cycle| { cycle.push(cycle[0]); cycle })
+            .map(|s| {
+                s.split(",")
+                    .map(|n| n.parse::<usize>().unwrap())
+                    .collect::<Vec<usize>>()
+            })
+            .map(|mut cycle| {
+                cycle.push(cycle[0]);
+                cycle
+            })
             .collect();
 
         for cycle in cycles {
@@ -208,8 +219,6 @@ impl CompressedPermutation {
         }
         CompressedPermutation::new(m)
     }
-
-
 }
 
 impl Display for CompressedPermutation {
@@ -224,7 +233,7 @@ impl Display for CompressedPermutation {
     }
 }
 
-pub fn get_permutation<T : PartialEq>(source: &Vec<T>, target: &Vec<T>) -> Permutation {
+pub fn get_permutation<T: PartialEq>(source: &Vec<T>, target: &Vec<T>) -> Permutation {
     let mut p = vec![0; source.len()];
     for i in 0..source.len() {
         p[i] = target.iter().position(|x| x == &source[i]).unwrap() + 1;
@@ -368,8 +377,8 @@ mod permutation_tests {
 
 #[cfg(test)]
 mod compressed_permutation_tests {
-    use std::collections::HashMap;
     use super::*;
+    use std::collections::HashMap;
 
     #[test]
     fn test_new() {

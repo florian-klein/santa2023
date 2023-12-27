@@ -2,20 +2,20 @@ use crate::permutation::Permutation;
 use std::collections::HashMap;
 use std::collections::{HashSet, VecDeque};
 
-pub struct PermutationGroupIterator {
-    frontier: VecDeque<(String, Permutation)>,
+pub struct PermutationGroupIterator<'a> {
+    frontier: VecDeque<(&'a str, Permutation)>,
     visited: HashSet<Permutation>,
     queue: Vec<Permutation>,
-    gen_to_str: HashMap<Permutation, String>,
+    gen_to_str: &'a HashMap<Permutation, String>,
 }
 
-impl<'s> PermutationGroupIterator {
-    pub fn new(gen_to_str: HashMap<Permutation, String>) -> Self {
+impl<'a> PermutationGroupIterator<'a> {
+    pub fn new(gen_to_str: &'a HashMap<Permutation, String>) -> Self {
         let mut frontier = VecDeque::new();
         // get a key from gen_to_str and its length
         let (key, _) = gen_to_str.iter().next().unwrap();
         let identity = Permutation::identity(key.len());
-        frontier.push_back(("".to_string(), identity.clone()));
+        frontier.push_back(("", identity.clone()));
 
         Self {
             frontier,
@@ -26,8 +26,8 @@ impl<'s> PermutationGroupIterator {
     }
 }
 
-impl Iterator for PermutationGroupIterator {
-    type Item = (String, Permutation);
+impl<'a> Iterator for PermutationGroupIterator<'a> {
+    type Item = (&'a str, Permutation);
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.frontier.is_empty() {
@@ -39,7 +39,7 @@ impl Iterator for PermutationGroupIterator {
                     let generator_name = self.gen_to_str.get(generator).unwrap();
                     if !self.visited.contains(&new_element) {
                         self.frontier
-                            .push_back((generator_name.to_string(), new_element));
+                            .push_back((generator_name.as_str(), new_element));
                     }
                 }
             } else {
@@ -47,13 +47,13 @@ impl Iterator for PermutationGroupIterator {
             }
         }
         let result = self.frontier.pop_front();
-        if let Some(ref r) = result {
-            let element_path = r.0.clone();
-            let perm = r.1.clone();
-            self.visited.insert(r.1.clone());
-            self.queue.push(r.1.clone());
-            return Some((element_path, perm));
+        if result.is_none() {
+            return None;
         }
-        None
+        let (element_path, perm) = result.unwrap();
+
+        self.visited.insert(perm.clone());
+        self.queue.push(perm.clone());
+        return Some((element_path, perm));
     }
 }

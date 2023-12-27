@@ -36,8 +36,8 @@ fn find_c_cycle(
     c: usize,
     n: usize,
 ) -> Option<(String, Permutation)> {
-    let generator = PermutationGroupIterator::new(gen_to_str.clone());
-    let mut mu;
+    let generator = PermutationGroupIterator::new(&gen_to_str);
+    let mut mu = Permutation::identity(n);
     let mut path: String = "".to_string();
     let mut i = 0;
     for (tau_path, tau) in generator {
