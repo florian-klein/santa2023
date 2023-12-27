@@ -38,9 +38,9 @@ fn find_c_cycle(
     n: usize,
 ) -> Option<(String, Permutation)> {
     let generator = PermutationGroupIterator::new(gen_to_str.clone());
-    let mut mu = Permutation::identity(n);
+    let mut mu;
     let mut path: String = "".to_string();
-    'outer: for (tau_path, tau) in generator {
+    for (tau_path, tau) in generator {
         'inner: for m in 1..=n {
             // Check whether tau.pow(m) is a c-cycle
             let tau_pow = tau.pow(m);
@@ -62,19 +62,20 @@ fn find_c_cycle(
             if found {
                 mu = tau_pow;
                 path = vec![tau_path; m].join(".");
-                break 'outer;
+                return Some((path, mu))
             }
         }
     }
-    Some((path, mu))
+    None
 }
 
-pub fn factorize(gen_to_str: HashMap<Permutation, String>, target: &Permutation) -> Option<String> {
+pub fn factorize(gen_to_str: &HashMap<Permutation, String>, target: &Permutation) -> Option<String> {
     let permutation_info = target.compute_info();
     let generators = &gen_to_str
         .keys()
         .map(|x| x.clone())
         .collect::<Vec<Permutation>>();
+    debug!("generators: {:?}", generators);
     let n = target.len();
     let c = match permutation_info.signum {
         false => 2,
@@ -241,7 +242,7 @@ mod tests {
         str_to_gen.insert("-gen1".to_string(), gen3.clone());
         str_to_gen.insert("-gen2".to_string(), gen4.clone());
         let target = Permutation::new(vec![1, 3, 2]);
-        let result = factorize(gen_to_str, &target).unwrap();
+        let result = factorize(&gen_to_str, &target).unwrap();
         debug!("result: {:?}", result);
         // check if result is correct (factorization results in target permutation)
         let mut result_perm = Permutation::identity(3);
@@ -316,7 +317,7 @@ mod tests {
         str_to_gen.insert("-gen8".to_string(), gen8_inv.clone());
         str_to_gen.insert("-gen9".to_string(), gen9_inv.clone());
         let target = Permutation::new(vec![1, 2, 3, 4, 5, 6, 7, 9, 8, 10]);
-        let result = factorize(gen_to_str, &target).unwrap();
+        let result = factorize(&gen_to_str, &target).unwrap();
         debug!("result: {:?}", result);
         // check if result is correct (factorization results in target permutation)
         let mut result_perm = Permutation::identity(10);
