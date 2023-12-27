@@ -19,7 +19,7 @@ fn to_2_cycle(p: &PermutationInfo) -> Vec<Vec<usize>> {
 }
 
 fn to_3_cycle(p: &PermutationInfo) -> Vec<Vec<usize>> {
-    if (!p.signum) {
+    if !p.signum {
         panic!("Permutation must be even");
     }
     let cycles = &p.cycles;  // disjoint cycles of arbitrary length

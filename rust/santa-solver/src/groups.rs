@@ -8,8 +8,8 @@ pub struct PermutationGroupIterator<'s> {
     generators: &'s Vec<Permutation>,
 }
 
-impl PermutationGroupIterator<'_> {
-    pub fn new(generators: &Vec<Permutation>) -> Self {
+impl<'s> PermutationGroupIterator<'s> {
+    pub fn new(generators: &'s Vec<Permutation>) -> Self {
         let mut frontier = VecDeque::new();
         let identity = Permutation::identity(generators[0].len());
         frontier.push_back(identity.clone());
