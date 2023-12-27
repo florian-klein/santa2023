@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use log::{debug, info};
+use log::{info};
 use crate::permutation::Permutation;
 use crate::puzzle::{Move, Puzzle, PuzzleType};
 
@@ -107,7 +107,7 @@ fn ida_star(puzzle: &Puzzle) -> Option<Vec<Move>> {
         100 => 25,
         _ => panic!("Invalid wreath size"),
     };
-    let mut state = WreathState::from_puzzle(puzzle);
+    let state = WreathState::from_puzzle(puzzle);
     // Perform IDA* search
     let mut bound = state.wrong_elements(second_c) / 2;
     loop {

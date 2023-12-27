@@ -3,7 +3,14 @@ use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Permutation {
-    p: Vec<usize>
+    p: Vec<usize>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PermutationInfo<'s> {
+    pub permutation: &'s Permutation,
+    pub(crate) cycles: Vec<Vec<usize>>,
+    pub signum: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -14,6 +21,16 @@ pub struct CompressedPermutation {
 impl Permutation {
     pub fn new(p: Vec<usize>) -> Permutation {
         Permutation { p }
+    }
+
+    pub fn from_cycles(cycles: &Vec<Vec<usize>>) -> Permutation {
+        let mut p = vec![0; cycles.iter().map(|c| c.len()).sum()];
+        for cycle in cycles {
+            for i in 0..cycle.len() {
+                p[cycle[i] - 1] = cycle[(i + 1) % cycle.len()];
+            }
+        }
+        Permutation::new(p)
     }
 
     pub fn identity(n: usize) -> Permutation {
@@ -78,11 +95,47 @@ impl Permutation {
         }
         CompressedPermutation::new(m)
     }
+
+    pub fn compute_info(&self) -> PermutationInfo {
+        let mut cycles = Vec::new();
+        let mut visited = vec![false; self.len()];
+        for i in 0..self.len() {
+            if !visited[i] {
+                let mut cycle = Vec::new();
+                let mut j = i;
+                while !visited[j] {
+                    visited[j] = true;
+                    cycle.push(j + 1);
+                    j = self.p[j] - 1;
+                }
+                cycles.push(cycle);
+            }
+        }
+        // The permutation is even iff the number of even cycles is even
+        let signum = cycles.iter().filter(|c| c.len() % 2 == 0).count() % 2 == 0;
+        PermutationInfo {
+            permutation: self,
+            cycles,
+            signum,
+        }
+    }
 }
 
 impl Display for Permutation {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.p)
+    }
+}
+
+impl Display for PermutationInfo<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.cycles)?;
+        if self.signum {
+            write!(f, " (even)")?;
+        } else {
+            write!(f, " (odd)")?;
+        }
+        Ok(())
     }
 }
 
@@ -137,6 +190,14 @@ impl Display for CompressedPermutation {
     }
 }
 
+pub fn get_permutation<T : PartialEq>(source: &Vec<T>, target: &Vec<T>) -> Permutation {
+    let mut p = vec![0; source.len()];
+    for i in 0..source.len() {
+        p[i] = target.iter().position(|x| x == &source[i]).unwrap() + 1;
+    }
+    Permutation::new(p)
+}
+
 #[cfg(test)]
 mod permutation_tests {
     use super::*;
@@ -145,6 +206,13 @@ mod permutation_tests {
     fn test_new() {
         let p = Permutation::new(vec![1, 2, 3]);
         assert_eq!(p.p, vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn test_from_cycles() {
+        let cycles = vec![vec![1, 2, 3], vec![4, 5]];
+        let p = Permutation::from_cycles(&cycles);
+        assert_eq!(p.p, vec![2, 3, 1, 5, 4]);
     }
 
     #[test]
@@ -224,6 +292,29 @@ mod permutation_tests {
         m.insert(1, 2);
         m.insert(2, 1);
         assert_eq!(cp.m, m);
+    }
+
+    #[test]
+    fn test_compute_info() {
+        let p = Permutation::new(vec![2, 6, 3, 5, 4, 1]);
+        let info = p.compute_info();
+        assert_eq!(info.cycles, vec![vec![1, 2, 6], vec![3], vec![4, 5]]);
+        assert_eq!(info.signum, false);
+    }
+
+    #[test]
+    fn test_get_permutation() {
+        let source = vec![1, 2, 3];
+        let target = vec![3, 1, 2];
+        let p = get_permutation(&source, &target);
+        assert_eq!(p.p, vec![2, 3, 1]);
+    }
+
+    #[test]
+    fn test_display_permutation_info() {
+        let p = Permutation::new(vec![2, 6, 3, 5, 4, 1]);
+        let info = p.compute_info();
+        assert_eq!(format!("{}", info), "[[1, 2, 6], [3], [4, 5]] (odd)");
     }
 }
 
