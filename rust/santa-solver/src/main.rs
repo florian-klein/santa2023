@@ -1,9 +1,21 @@
+use std::collections::HashMap;
 use log::{debug, info};
 use env_logger;
+use ctrlc2;
 
 mod permutation;
 mod puzzle;
 mod wreath;
+
+fn write_solution_to_file(solution_path: &str, results: &HashMap<usize, String>) {
+    debug!("Writing solution to file...");
+    let mut writer = csv::Writer::from_path(solution_path).unwrap();
+    writer.write_record(&["id", "moves"]).unwrap();
+    for (id, moves) in results.iter() {
+        writer.write_record(&[&id.to_string(), moves]).unwrap();
+    }
+    writer.flush().unwrap();
+}
 
 fn main() {
     env_logger::init();
@@ -15,7 +27,14 @@ fn main() {
     debug!("Loading puzzle data...");
     let puzzles = puzzle::load_puzzles(puzzle_info_path, puzzles_path).unwrap();
     info!("Loaded {} puzzles", puzzles.len());
-    // Solve all wreath puzzles (Check if puzzle_type is WREATH(_))
+
+    // Catch interrupts so we can write the solution to a file
+    ctrlc2::set_handler(move || {
+        info!("Caught interrupt, writing solution to file...");
+        // TODO: Write solution to file
+        std::process::exit(0);
+    }).expect("Error setting Ctrl-C handler");
+
     let wreath_puzzles: Vec<puzzle::Puzzle> = puzzles.iter().filter(|p| {
         if let puzzle::PuzzleType::WREATH(n) = p.puzzle_type {
             n > 12  // We have already solved wreath puzzles of size <=12
@@ -25,15 +44,7 @@ fn main() {
     }).cloned().collect();
     info!("Solving {} wreath puzzles", wreath_puzzles.len());
     let results = wreath::solve_puzzles(&wreath_puzzles);
-
-    debug!("Writing solution to file...");
-    // Write the solution to a file
-    let mut writer = csv::Writer::from_path(solution_path).unwrap();
-    writer.write_record(&["id", "moves"]).unwrap();
-    for (id, moves) in results.iter() {
-        writer.write_record(&[&id.to_string(), moves]).unwrap();
-    }
-    writer.flush().unwrap();
+    write_solution_to_file(solution_path, &results);
 }
 
 

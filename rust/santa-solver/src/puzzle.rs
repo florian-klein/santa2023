@@ -47,8 +47,16 @@ impl PuzzleType {
     }
 }
 
-pub fn state_from_str(s: &str) -> Vec<usize> {
+pub fn state_from_str(s: &str, element_map: &HashMap<String, usize>) -> Vec<usize> {
     let mut state = Vec::new();
+
+    for element in s.split(';') {
+        state.push(*element_map.get(element).expect(&format!("Unknown element {}", element)));
+    }
+    state
+}
+
+pub fn build_element_map() -> HashMap<String, usize> {
     let mut element_map = HashMap::new();
 
     // Insert A->1, B->2, C->3, ... , a -> 27, b -> 28, c -> 29, ...
@@ -62,11 +70,7 @@ pub fn state_from_str(s: &str) -> Vec<usize> {
     for i in 0..10001 {
         element_map.insert(format!("N{}", i), i + 1);
     }
-
-    for element in s.split(';') {
-        state.push(*element_map.get(element).expect(&format!("Unknown element {}", element)));
-    }
-    state
+    element_map
 }
 
 pub fn load_puzzles(puzzle_info_path : &str, puzzles_path: &str) -> Result<Vec<Puzzle>, Box<dyn Error>> {
@@ -96,11 +100,13 @@ pub fn load_puzzles(puzzle_info_path : &str, puzzles_path: &str) -> Result<Vec<P
 
     let mut puzzles : Vec<Puzzle> = Vec::new();
     let mut puzzles_reader = csv::Reader::from_path(puzzles_path)?;
+    let element_map = build_element_map();
+
     for record in puzzles_reader.records() {
         let record = record?;
         let puzzle_type = PuzzleType::from_str(&record[1])?;
-        let goal_state= state_from_str(&record[2]);
-        let initial_state = state_from_str(&record[3]);
+        let goal_state= state_from_str(&record[2], &element_map);
+        let initial_state = state_from_str(&record[3], &element_map);
         let num_wildcards = record[4].parse()?;
         puzzles.push(Puzzle {
             id: record[0].parse()?,
@@ -157,9 +163,10 @@ mod tests {
 
     #[test]
     fn test_state_from_str() {
-        assert_eq!(state_from_str("A;B;C"), vec![1, 2, 3]);
-        assert_eq!(state_from_str("B;A;C"), vec![2, 1, 3]);
-        assert_eq!(state_from_str("A;B;C;D;E;F"), vec![1, 2, 3, 4, 5, 6]);
+        let element_map = build_element_map();
+        assert_eq!(state_from_str("A;B;C", &element_map), vec![1, 2, 3]);
+        assert_eq!(state_from_str("B;A;C", &element_map), vec![2, 1, 3]);
+        assert_eq!(state_from_str("A;B;C;D;E;F", &element_map), vec![1, 2, 3, 4, 5, 6]);
     }
 
     #[test]
