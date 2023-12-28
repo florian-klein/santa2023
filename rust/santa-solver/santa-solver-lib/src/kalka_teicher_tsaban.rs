@@ -263,10 +263,18 @@ mod tests {
     #[test]
     fn test_find_c_cycle_s_5() {
         let gen_to_index = TestingUtils::get_generator_to_perm_index_map_s_n(5);
-        let (_path, result) = find_c_cycle(&gen_to_index, 2, 5).unwrap();
-        let resultinfo = result.compute_info();
-        debug!("result: {:?}", resultinfo);
-        TestingUtils::assert_cycle_list_is_c_cycle(resultinfo.cycles, 2);
+        let index_to_gen = TestingUtils::get_index_to_perm_vec_s_n(5);
+        let test_ranges = vec![2, 3, 4];
+        for c in test_ranges {
+            let result = find_c_cycle(&gen_to_index, c, 5);
+            assert!(result.is_some());
+            let (path, result) = result.unwrap();
+            TestingUtils::assert_index_path_equals_permutation(&path.arr, &result, &index_to_gen);
+            // check that result is a c-cycle (return value is non deterministic)
+            let resultinfo = result.compute_info();
+            debug!("result: {:?}", resultinfo);
+            TestingUtils::assert_cycle_list_is_c_cycle(resultinfo.cycles, c)
+        }
     }
 
     #[test]

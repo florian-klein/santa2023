@@ -28,6 +28,24 @@ impl TestingUtils {
         result
     }
 
+    pub fn get_perm_index_to_generator_map_s_n(n: usize) -> HashMap<PermutationIndex, Permutation> {
+        let mut result = HashMap::new();
+        let generators = TestingUtils::get_s_n_generators(n);
+        for (i, generator) in generators.iter().enumerate() {
+            result.insert(i, generator.clone());
+        }
+        result
+    }
+
+    pub fn get_index_to_perm_vec_s_n(n: usize) -> Vec<Permutation> {
+        let mut result = Vec::new();
+        let generators = TestingUtils::get_s_n_generators(n);
+        for generator in generators {
+            result.push(generator);
+        }
+        result
+    }
+
     pub fn assert_cycle_list_is_c_cycle(cycle_list: Vec<Vec<usize>>, c: usize) -> () {
         let mut result = true;
         for cycle in cycle_list {
