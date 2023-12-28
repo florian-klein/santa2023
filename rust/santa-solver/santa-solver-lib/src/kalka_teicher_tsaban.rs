@@ -44,9 +44,10 @@ pub fn find_c_cycle(
         if i % 1000 == 0 {
             debug!("Generators tried: {:?}", i);
         }
+        let mut tau_pow = tau.clone();
         'inner: for m in 1..=n {
             // Check whether tau.pow(m) is a c-cycle
-            let tau_pow = tau.pow(m);
+            tau_pow = tau_pow.compose(&tau);
             let tau_cycles = tau_pow.compute_info().cycles;
             let mut found = false;
             for cycle in tau_cycles {
