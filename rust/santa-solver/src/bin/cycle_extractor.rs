@@ -41,31 +41,25 @@ fn main() {
                 continue;
             }
         }
-        let mut gen_to_str = HashMap::new();
+        let mut gen_to_str = Vec::new();
+        let mut gen_to_idx = HashMap::new();
+
         for m in moves {
-            gen_to_str.insert(m.permutation.clone(), m.name.clone());
+            let idx = gen_to_idx.len();
+            gen_to_idx.insert(m.permutation.clone(), idx);
+            gen_to_str.push((m.name.clone()));
         }
         let n = moves[0].permutation.len();
-        info!(
-            "Generating transpositions for puzzle type {:?}",
-            puzzle_type
-        );
-        let mut mu = kalka::find_c_cycle(&gen_to_str, 2, n); // TODO: If successful, try to find shorter paths
+        info!("Generating transpositions for puzzle type {:?}", puzzle_type);
+        let mut mu = kalka::find_c_cycle(&gen_to_idx, 2, n);  // TODO: If successful, try to find shorter paths
         if mu.is_none() {
             warn!("Failed to find 2-cycle for puzzle type {:?}", puzzle_type);
         } else {
             let (mu_path, mu) = mu.unwrap();
-            debug!(
-                "Found 2-cycle for puzzle type {:?}: {}",
-                puzzle_type, mu_path
-            );
+            debug!("Found 2-cycle for puzzle type {:?}: {}", puzzle_type, mu_path.to_string(&gen_to_str));
 
-            let transpositions = kalka::generate_transpositions(&gen_to_str, &mu, &mu_path, 100000);
-            debug!(
-                "Generated {} transpositions for puzzle type {:?}",
-                transpositions.len(),
-                puzzle_type
-            );
+            let transpositions = kalka::generate_transpositions(&gen_to_idx, &mu, &mu_path, 100000);
+            debug!("Generated {} transpositions for puzzle type {:?}", transpositions.len(), puzzle_type);
 
             // Write the transpositions to a new file
             let transpositions_path = format!("{}/{}_2c.csv", cycles_path, puzzle_type);
@@ -82,31 +76,23 @@ fn main() {
                 .unwrap();
             // Write all transpositions to the file
             for (perm, path) in transpositions {
-                let length = path.split('.').count();
-                writer
-                    .write_record(&[&perm.to_string(), &path, &length.to_string()])
-                    .unwrap(); // TODO: Find a nicer way to write the permutation
+                let path_str =  path.to_string(&&gen_to_str);
+                let length = path_str.split('.').count();
+                writer.write_record(&[&perm.to_string(), &path_str, &length.to_string()]).unwrap();  // TODO: Find a nicer way to write the permutation
             }
             writer.flush().unwrap();
         }
         // Try to find a 3-cycle
-        mu = kalka::find_c_cycle(&gen_to_str, 3, n);
+        mu = kalka::find_c_cycle(&gen_to_idx, 3, n);
         if mu.is_none() {
             warn!("Failed to find 3-cycle for puzzle type {:?}", puzzle_type);
             continue;
         } else {
             let (mu_path, mu) = mu.unwrap();
-            debug!(
-                "Found 3-cycle for puzzle type {:?}: {}",
-                puzzle_type, mu_path
-            );
+            debug!("Found 3-cycle for puzzle type {:?}: {}", puzzle_type, mu_path.to_string(&gen_to_str));
 
-            let transpositions = kalka::generate_transpositions(&gen_to_str, &mu, &mu_path, 100000);
-            debug!(
-                "Generated {} permutations for puzzle type {:?}",
-                transpositions.len(),
-                puzzle_type
-            );
+            let transpositions = kalka::generate_transpositions(&gen_to_idx, &mu, &mu_path, 100000);
+            debug!("Generated {} permutations for puzzle type {:?}", transpositions.len(), puzzle_type);
 
             // Write the transpositions to a new file
             let transpositions_path = format!("{}/{}_3c.csv", cycles_path, puzzle_type);
@@ -123,10 +109,9 @@ fn main() {
                 .unwrap();
             // Write all transpositions to the file
             for (perm, path) in transpositions {
-                let length = path.split('.').count();
-                writer
-                    .write_record(&[&perm.to_string(), &path, &length.to_string()])
-                    .unwrap();
+                let path_str =  path.to_string(&&gen_to_str);
+                let length = path_str.split('.').count();
+                writer.write_record(&[&perm.to_string(), &path_str, &length.to_string()]).unwrap();
             }
             writer.flush().unwrap();
         }

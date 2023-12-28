@@ -14,6 +14,49 @@ pub struct PermutationInfo<'s> {
     pub signum: bool,
 }
 
+pub type PermutationIndex = usize;
+
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+pub struct PermutationPath {
+    pub arr: Vec<PermutationIndex>, // (index, inverse)
+}
+
+impl PermutationPath {
+    pub fn push(&mut self, index: PermutationIndex) {
+        self.arr.push(index);
+    }
+
+    pub fn push_multiple(&mut self, indices: &Vec<PermutationIndex>) {
+        self.arr.extend(indices);
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.arr.is_empty()
+    }
+
+    pub fn pow(&mut self, n: usize) {
+        let mut result = Vec::new();
+        for _ in 0..n {
+            result.append(&mut self.arr.clone());
+        }
+        self.arr = result;
+    }
+
+    pub fn merge(&mut self, other: &PermutationPath) {
+        self.arr.extend(other.arr.clone());
+    }
+
+    pub fn to_string(&self, gen_to_str: &Vec<String>) -> String {
+        let result = self.arr
+            .clone()
+            .into_iter()
+            .map(|i| gen_to_str[i].clone())
+            .collect::<Vec<_>>()
+            .join(".");
+        result
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct CompressedPermutation {
     m: HashMap<usize, usize>,

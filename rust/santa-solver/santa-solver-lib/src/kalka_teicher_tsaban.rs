@@ -1,5 +1,5 @@
 use crate::groups::PermutationGroupIterator;
-use crate::permutation::{Permutation, PermutationInfo};
+use crate::permutation::{Permutation, PermutationIndex, PermutationInfo, PermutationPath};
 use log::{debug, info, warn};
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
@@ -34,15 +34,15 @@ fn to_3_cycle(p: &PermutationInfo) -> Vec<Vec<usize>> {
 }
 
 pub fn find_c_cycle(
-    gen_to_str: &HashMap<Permutation, String>,
+    gen_to_str: &HashMap<Permutation, PermutationIndex>,
     c: usize,
     n: usize,
-) -> Option<(String, Permutation)> {
+) -> Option<(PermutationPath, Permutation)> {
     let generator = PermutationGroupIterator::new(&gen_to_str);
     let mut mu = Permutation::identity(n);
     let mut path: String = "".to_string();
     let mut i = 0;
-    for (tau_path, tau) in generator {
+    for (mut tau_path, tau) in generator {
         i += 1;
         if i % 1000 == 0 {
             debug!("Generators tried: {:?}", i);
@@ -67,8 +67,8 @@ pub fn find_c_cycle(
             }
             if found {
                 mu = tau_pow;
-                path = vec![tau_path; m].join(".");
-                return Some((path, mu));
+                tau_path.pow(m);
+                return Some((tau_path, mu));
             }
             if i >= 100000 {
                 warn!("Aborting after trying {} generators", i);
@@ -80,15 +80,15 @@ pub fn find_c_cycle(
 }
 
 pub fn generate_transpositions(
-    gen_to_str: &HashMap<Permutation, String>,
+    gen_to_str: &HashMap<Permutation, PermutationIndex>,
     mu: &Permutation,
-    mu_path: &str,
+    mu_path: &PermutationPath,
     n: usize,
-) -> HashMap<Permutation, String> {
-    let mut a_0: HashMap<Permutation, String> = HashMap::new(); // A_{l-1}, previous iteration
-    let mut a_l: HashMap<Permutation, String> = HashMap::new(); // A_l, current iteration
-    let mut a_union: HashMap<Permutation, String> = HashMap::new(); // a_0 union A_1 union ... union A_l
-    a_0.insert(mu.clone(), String::from_str(mu_path).unwrap());
+) -> HashMap<Permutation, PermutationPath> {
+    let mut a_0: HashMap<Permutation, PermutationPath> = HashMap::new(); // A_{l-1}, previous iteration
+    let mut a_l: HashMap<Permutation, PermutationPath> = HashMap::new(); // A_l, current iteration
+    let mut a_union: HashMap<Permutation, PermutationPath> = HashMap::new(); // a_0 union A_1 union ... union A_l
+    a_0.insert(mu.clone(), mu_path.clone());
     let generators = &gen_to_str
         .keys()
         .map(|x| x.clone())
@@ -98,8 +98,8 @@ pub fn generate_transpositions(
         for gen in generators {
             let s_i = gen;
             let s_i_inv = &s_i.inverse();
-            let s_i_path = gen_to_str.get(s_i).unwrap().to_string();
-            let s_i_inv_path = gen_to_str.get(s_i_inv).unwrap().to_string();
+            let s_i_path = gen_to_str.get(s_i).unwrap();
+            let s_i_inv_path = gen_to_str.get(s_i_inv).unwrap();
             for (a, a_path) in &a_0 {
                 // calculate s_i^eps * a * s_i^-eps and check membership
                 let perm_eps_pos = s_i_inv.compose(&a.compose(s_i));
@@ -108,16 +108,19 @@ pub fn generate_transpositions(
                 // A_union = (a_0 union a_1 union ... union A_{l-1}) at this point
                 if !a_union.contains_key(&perm_eps_pos) && !a_l.contains_key(&perm_eps_pos) {
                     // Is the a_l check necessary?
-                    a_l.insert(
-                        perm_eps_pos,
-                        s_i_inv_path.clone() + "." + a_path + "." + &s_i_path,
-                    );
+                    let mut al_path = PermutationPath::default();
+                    al_path.push(*s_i_inv_path);
+                    al_path.merge(a_path);
+                    al_path.push(*s_i_path);
+
+                    a_l.insert(perm_eps_pos, al_path);
                 }
                 if !a_union.contains_key(&perm_eps_neg) && !a_l.contains_key(&perm_eps_neg) {
-                    a_l.insert(
-                        perm_eps_neg,
-                        s_i_path.clone() + "." + a_path + "." + &s_i_inv_path,
-                    );
+                    let mut al_path = PermutationPath::default();
+                    al_path.push(*s_i_path);
+                    al_path.merge(a_path);
+                    al_path.push(*s_i_inv_path);
+                    a_l.insert(perm_eps_neg, al_path);
                 }
             }
         }
@@ -138,11 +141,12 @@ pub fn generate_transpositions(
 }
 
 pub fn factorize(
-    gen_to_str: &HashMap<Permutation, String>,
+    gen_to_idx: &HashMap<Permutation, PermutationIndex>,
+    gen_to_str: Vec<String>,
     target: &Permutation,
 ) -> Option<String> {
     let permutation_info = target.compute_info();
-    let generators = &gen_to_str
+    let generators = &gen_to_idx
         .keys()
         .map(|x| x.clone())
         .collect::<Vec<Permutation>>();
@@ -152,12 +156,12 @@ pub fn factorize(
         false => 2,
         true => 3,
     };
-    if (c != 2) {
+    if c != 2 {
         panic!("3-cycles are not implemented yet.");
     }
 
     // Step 1: Find a short c-cycle in the group generated by generators
-    let (mu_path, mu) = match find_c_cycle(&gen_to_str, c, n) {
+    let (mu_path, mu) = match find_c_cycle(&gen_to_idx, c, n) {
         Some((mu_path, mu)) => (mu_path, mu),
         None => {
             eprintln!("No short c-cycle found");
@@ -182,17 +186,17 @@ pub fn factorize(
     }
 
     // Step 2: Find short expressions for additional c-cycles
-    let mut a_0: HashMap<Permutation, String> = HashMap::new(); // A_{l-1}, previous iteration
-    let mut a_l: HashMap<Permutation, String> = HashMap::new(); // A_l, current iteration
-    let mut a_union: HashMap<Permutation, String> = HashMap::new(); // a_0 union A_1 union ... union A_l
+    let mut a_0: HashMap<Permutation, PermutationPath> = HashMap::new(); // A_{l-1}, previous iteration
+    let mut a_l: HashMap<Permutation, PermutationPath> = HashMap::new(); // A_l, current iteration
+    let mut a_union: HashMap<Permutation, PermutationPath> = HashMap::new(); // a_0 union A_1 union ... union A_l
     a_0.insert(mu, mu_path);
     loop {
         a_l.clear();
         for gen in generators {
             let s_i = gen;
             let s_i_inv = &s_i.inverse();
-            let s_i_path = gen_to_str.get(s_i).unwrap().to_string();
-            let s_i_inv_path = gen_to_str.get(s_i_inv).unwrap().to_string();
+            let s_i_path = gen_to_idx.get(s_i).unwrap();
+            let s_i_inv_path = gen_to_idx.get(s_i_inv).unwrap();
             for (a, a_path) in &a_0 {
                 // calculate s_i^eps * a * s_i^-eps and check membership
                 let perm_eps_pos = s_i_inv.compose(&a.compose(s_i));
@@ -201,16 +205,18 @@ pub fn factorize(
                 // A_union = (a_0 union a_1 union ... union A_{l-1}) at this point
                 if !a_union.contains_key(&perm_eps_pos) && !a_l.contains_key(&perm_eps_pos) {
                     // Is the a_l check necessary?
-                    a_l.insert(
-                        perm_eps_pos,
-                        s_i_inv_path.clone() + "." + a_path + "." + &s_i_path,
-                    );
+                    let mut al_path = PermutationPath::default();
+                    al_path.push(*s_i_inv_path);
+                    al_path.merge(a_path);
+                    al_path.push(*s_i_path);
+                    a_l.insert(perm_eps_pos, al_path);
                 }
                 if !a_union.contains_key(&perm_eps_neg) && !a_l.contains_key(&perm_eps_neg) {
-                    a_l.insert(
-                        perm_eps_neg,
-                        s_i_path.clone() + "." + a_path + "." + &s_i_inv_path,
-                    );
+                    let mut al_path = PermutationPath::default();
+                    al_path.push(*s_i_path);
+                    al_path.merge(a_path);
+                    al_path.push(*s_i_inv_path);
+                    a_l.insert(perm_eps_neg, al_path);
                 }
             }
         }
@@ -246,7 +252,7 @@ pub fn factorize(
             // We have found a short expression for all c-cycles
             // Return a_union
             let result = a_union.get(target).unwrap();
-            return Some(result.to_string());
+            return Some(result.to_string(&gen_to_str));
         }
     }
 }
@@ -325,7 +331,19 @@ mod tests {
         str_to_gen.insert("-gen1".to_string(), gen3.clone());
         str_to_gen.insert("-gen2".to_string(), gen4.clone());
         let target = Permutation::new(vec![1, 3, 2]);
-        let result = factorize(&gen_to_str, &target).unwrap();
+
+        let gen_to_str_vec = gen_to_str.collect::<Vec<(Permutation, String)>>();
+        let gen_to_idx = gen_to_str_vec
+            .iter()
+            .enumerate()
+            .map(|(i, (p, _))| (p.clone(), i))
+            .collect::<HashMap<Permutation, PermutationIndex>>();
+        let gen_to_str_vec = gen_to_str_vec
+            .iter()
+            .map(|(_, s)| s.clone())
+            .collect::<Vec<String>>();
+
+        let result = factorize(&gen_to_idx, &gen_to_str_vec, &target).unwrap();
         debug!("result: {:?}", result);
         // check if result is correct (factorization results in target permutation)
         let mut result_perm = Permutation::identity(3);
@@ -400,7 +418,19 @@ mod tests {
         str_to_gen.insert("-gen8".to_string(), gen8_inv.clone());
         str_to_gen.insert("-gen9".to_string(), gen9_inv.clone());
         let target = Permutation::new(vec![1, 2, 3, 4, 5, 6, 7, 9, 8, 10]);
-        let result = factorize(&gen_to_str, &target).unwrap();
+
+        let gen_to_str_vec = gen_to_str.collect::<Vec<(Permutation, String)>>();
+        let gen_to_idx = gen_to_str_vec
+            .iter()
+            .enumerate()
+            .map(|(i, (p, _))| (p.clone(), i))
+            .collect::<HashMap<Permutation, PermutationIndex>>();
+        let gen_to_str_vec = gen_to_str_vec
+            .iter()
+            .map(|(_, s)| s.clone())
+            .collect::<Vec<String>>();
+
+        let result = factorize(&gen_to_idx, &gen_to_str_vec, &target).unwrap();
         debug!("result: {:?}", result);
         // check if result is correct (factorization results in target permutation)
         let mut result_perm = Permutation::identity(10);

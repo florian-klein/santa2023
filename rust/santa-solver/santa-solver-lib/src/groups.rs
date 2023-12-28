@@ -1,13 +1,13 @@
-use crate::permutation::Permutation;
+use crate::permutation::{Permutation, PermutationIndex, PermutationPath};
 use std::collections::HashMap;
 use std::collections::{HashSet, VecDeque};
 use crate::permutation;
 
 pub struct PermutationGroupIterator<'a> {
-    frontier: VecDeque<(String, Permutation)>,
+    frontier: VecDeque<(PermutationPath, Permutation)>,
     visited: HashSet<Permutation>,
-    queue: VecDeque<(String, Permutation)>,
-    gen_to_str: &'a HashMap<Permutation, String>,
+    queue: VecDeque<(PermutationPath, Permutation)>,
+    gen_to_str: &'a HashMap<Permutation, PermutationIndex>,
 }
 
 pub struct DepthLimitedPermutationGroupIterator<'a> {
@@ -20,12 +20,12 @@ pub struct DepthLimitedPermutationGroupIterator<'a> {
 }
 
 impl<'a> PermutationGroupIterator<'a> {
-    pub fn new(gen_to_str: &'a HashMap<Permutation, String>) -> Self {
+    pub fn new(gen_to_str: &'a HashMap<Permutation, PermutationIndex>) -> Self {
         let mut frontier = VecDeque::new();
         // get a key from gen_to_str and its length
         let (key, _) = gen_to_str.iter().next().unwrap();
         let identity = Permutation::identity(key.len());
-        frontier.push_back((String::new(), identity.clone()));
+        frontier.push_back((PermutationPath::default(), identity.clone()));
 
         Self {
             frontier,
@@ -37,7 +37,7 @@ impl<'a> PermutationGroupIterator<'a> {
 }
 
 impl<'a> Iterator for PermutationGroupIterator<'a> {
-    type Item = (String, Permutation);
+    type Item = (PermutationPath, Permutation);
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.frontier.is_empty() {
@@ -49,10 +49,7 @@ impl<'a> Iterator for PermutationGroupIterator<'a> {
                     let generator_name = self.gen_to_str.get(generator).unwrap();
                     if !self.visited.contains(&new_element) {
                         let mut new_path = element_path.clone();
-                        if !new_path.is_empty() {
-                            new_path.push('.');
-                        }
-                        new_path.push_str(generator_name.as_str());
+                        new_path.push(*generator_name);
                         self.frontier
                             .push_back((new_path, new_element));
                     }
