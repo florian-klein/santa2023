@@ -1,8 +1,8 @@
-use std::collections::HashMap;
-use std::path::Path;
 use log::debug;
 use santa_solver_lib::permutation::Permutation;
 use santa_solver_lib::puzzle;
+use std::collections::HashMap;
+use std::path::Path;
 
 fn main() {
     env_logger::init();
@@ -21,7 +21,7 @@ fn main() {
     let cycles_path = if args.len() > 2 {
         &args[3]
     } else {
-        "./../../data/cycles"  // The directory where the generated permutations are stored
+        "./../../data/cycles" // The directory where the generated permutations are stored
     };
     let solution_path = if args.len() > 3 {
         &args[4]
@@ -53,8 +53,8 @@ fn main() {
             let mut reader = csv::Reader::from_path(filename).unwrap();
             for record in reader.records() {
                 let record = record.unwrap();
-                let perm : Permutation = record[0].parse().unwrap();  // TODO: Implement FromStr for Permutation
-                let path : String = record[1].parse().unwrap();
+                let perm: Permutation = record[0].parse().unwrap(); // TODO: Implement FromStr for Permutation
+                let path: String = record[1].parse().unwrap();
                 two_cycles[t].insert(perm, path);
             }
         }
@@ -66,8 +66,8 @@ fn main() {
             let mut reader = csv::Reader::from_path(filename).unwrap();
             for record in reader.records() {
                 let record = record.unwrap();
-                let perm : Permutation = record[0].parse().unwrap();
-                let path : String = record[1].parse().unwrap();
+                let perm: Permutation = record[0].parse().unwrap();
+                let path: String = record[1].parse().unwrap();
                 three_cycles[t].insert(perm, path);
             }
         }
@@ -77,5 +77,4 @@ fn main() {
     for puzzle in puzzles {
         // TODO: solve
     }
-
 }

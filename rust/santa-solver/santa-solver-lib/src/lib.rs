@@ -5,4 +5,5 @@ mod minkwitz;
 pub mod permutation;
 pub mod puzzle;
 mod schreier;
+mod split_cycles;
 pub mod wreath;

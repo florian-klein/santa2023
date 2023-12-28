@@ -1,8 +1,8 @@
 use crate::groups::PermutationGroupIterator;
 use crate::permutation::{Permutation, PermutationInfo};
+use log::{debug, info, warn};
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
-use log::{debug, info, warn};
 
 fn to_2_cycle(p: &PermutationInfo) -> Vec<Vec<usize>> {
     let cycles = &p.cycles; // disjoint cycles of arbitrary length
@@ -14,7 +14,8 @@ fn to_2_cycle(p: &PermutationInfo) -> Vec<Vec<usize>> {
         } else if cycle.len() == 2 {
             result.push(cycle.clone());
         } else {
-            for i in 1..cycle.len() {  // TODO: Find all possible 2-cycle decompositions
+            for i in 1..cycle.len() {
+                // TODO: Find all possible 2-cycle decompositions
                 result.push(vec![cycle[0], cycle[i]]);
             }
         }
@@ -67,7 +68,7 @@ pub fn find_c_cycle(
             if found {
                 mu = tau_pow;
                 path = vec![tau_path; m].join(".");
-                return Some((path, mu))
+                return Some((path, mu));
             }
             if i >= 100000 {
                 warn!("Aborting after trying {} generators", i);
@@ -78,7 +79,12 @@ pub fn find_c_cycle(
     None
 }
 
-pub fn generate_transpositions(gen_to_str: &HashMap<Permutation, String>, mu: &Permutation, mu_path: &str, n: usize) -> HashMap<Permutation, String> {
+pub fn generate_transpositions(
+    gen_to_str: &HashMap<Permutation, String>,
+    mu: &Permutation,
+    mu_path: &str,
+    n: usize,
+) -> HashMap<Permutation, String> {
     let mut a_0: HashMap<Permutation, String> = HashMap::new(); // A_{l-1}, previous iteration
     let mut a_l: HashMap<Permutation, String> = HashMap::new(); // A_l, current iteration
     let mut a_union: HashMap<Permutation, String> = HashMap::new(); // a_0 union A_1 union ... union A_l
@@ -131,7 +137,10 @@ pub fn generate_transpositions(gen_to_str: &HashMap<Permutation, String>, mu: &P
     }
 }
 
-pub fn factorize(gen_to_str: &HashMap<Permutation, String>, target: &Permutation) -> Option<String> {
+pub fn factorize(
+    gen_to_str: &HashMap<Permutation, String>,
+    target: &Permutation,
+) -> Option<String> {
     let permutation_info = target.compute_info();
     let generators = &gen_to_str
         .keys()
@@ -250,7 +259,8 @@ mod tests {
     fn test_to_2_cycle() {
         let p = Permutation::from_cycles(&vec![vec![1, 2, 3], vec![4, 5]]);
         let result = to_2_cycle(&p.compute_info());
-        assert_eq!(result, vec![vec![1, 2], vec![2, 3], vec![3, 1], vec![4, 5]]);  // TODO: rework
+        assert_eq!(result, vec![vec![1, 2], vec![2, 3], vec![3, 1], vec![4, 5]]);
+        // TODO: rework
     }
 
     #[test]
