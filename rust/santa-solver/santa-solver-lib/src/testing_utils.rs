@@ -1,4 +1,6 @@
 use crate::permutation::Permutation;
+use crate::permutation::PermutationIndex;
+use std::collections::HashMap;
 pub struct TestingUtils {}
 
 impl TestingUtils {
@@ -14,28 +16,48 @@ impl TestingUtils {
                 n,
             ));
         }
-        generators.push(Permutation::parse_permutation_from_cycle(
-            &format!("({}, {})", n, 1),
-            n,
-        ));
         generators
+    }
+
+    pub fn get_generator_to_perm_index_map_s_n(n: usize) -> HashMap<Permutation, PermutationIndex> {
+        let mut result = HashMap::new();
+        let generators = TestingUtils::get_s_n_generators(n);
+        for (i, generator) in generators.iter().enumerate() {
+            result.insert(generator.clone(), i);
+        }
+        result
+    }
+
+    pub fn assert_cycle_list_is_c_cycle(cycle_list: Vec<Vec<usize>>, c: usize) -> () {
+        let mut result = true;
+        for cycle in cycle_list {
+            if cycle.len() == 1 {
+                continue;
+            }
+            if cycle.len() != c {
+                result = false;
+                break;
+            }
+        }
+        assert!(result);
     }
 
     pub fn assert_index_path_equals_permutation(
         path: &Vec<usize>,
         perm: &Permutation,
         index_to_perm: &Vec<Permutation>,
-    ) -> bool {
+    ) -> () {
         let mut result = Permutation::identity(perm.len());
         for i in path {
-            result = result.compose(&index_to_perm[*i]);
+            // apply index_to_perm to resut
+            let perm = &index_to_perm[*i];
+            result = perm.compose(&result);
         }
         if result != *perm {
             println!("path: {:?}", path);
             println!("result: {:?}", result);
             println!("perm: {:?}", perm);
-            println!("index_to_perm: {:?}", index_to_perm);
         }
-        result == *perm
+        assert!(result == *perm);
     }
 }

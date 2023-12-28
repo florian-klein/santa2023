@@ -256,7 +256,18 @@ pub fn factorize(
 
 #[cfg(test)]
 mod tests {
+    use crate::testing_utils::TestingUtils;
+
     use super::*;
+
+    #[test]
+    fn test_find_c_cycle_s_5() {
+        let gen_to_index = TestingUtils::get_generator_to_perm_index_map_s_n(5);
+        let (_path, result) = find_c_cycle(&gen_to_index, 2, 5).unwrap();
+        let resultinfo = result.compute_info();
+        debug!("result: {:?}", resultinfo);
+        TestingUtils::assert_cycle_list_is_c_cycle(resultinfo.cycles, 2);
+    }
 
     #[test]
     fn test_find_2_cycle() {
