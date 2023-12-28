@@ -22,6 +22,9 @@ pub struct PermutationPath {
 }
 
 impl PermutationPath {
+    pub fn new(arr: Vec<PermutationIndex>) -> PermutationPath {
+        PermutationPath { arr }
+    }
     pub fn push(&mut self, index: PermutationIndex) {
         self.arr.push(index);
     }

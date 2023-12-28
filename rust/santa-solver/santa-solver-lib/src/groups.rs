@@ -1,4 +1,6 @@
 use crate::permutation::{Permutation, PermutationIndex, PermutationPath};
+use log::error;
+use log::info;
 use std::collections::HashMap;
 use std::collections::{HashSet, VecDeque};
 
@@ -21,7 +23,6 @@ pub struct DepthLimitedPermutationGroupIterator<'a> {
 impl<'a> PermutationGroupIterator<'a> {
     pub fn new(gen_to_str: &'a HashMap<Permutation, PermutationIndex>) -> Self {
         let mut frontier = VecDeque::new();
-        // get a key from gen_to_str and its length
         let (key, _) = gen_to_str.iter().next().unwrap();
         let identity = Permutation::identity(key.len());
         frontier.push_back((PermutationPath::default(), identity.clone()));
@@ -53,12 +54,16 @@ impl<'a> Iterator for PermutationGroupIterator<'a> {
                     }
                 }
             } else {
+                error!("Error in PermutationGroupIterator: Queue is empty");
                 return None;
             }
         }
         let result = self.frontier.pop_front();
-        if result.is_none() {
+        if self.queue.is_empty() && result.is_none() {
+            info!("PermutationGroupIterator Frontier is now empty, proceeding ...");
             return None;
+        } else if result.is_none() {
+            return self.next();
         }
         let (element_path, perm) = result.unwrap();
 
@@ -90,7 +95,7 @@ impl<'a> Iterator for DepthLimitedPermutationGroupIterator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.current_depth == self.max_depth {
-            println!("Max depth reached");
+            info!("Reached max depth of {} in Group Iterator", self.max_depth);
             return None;
         }
         if self.frontier.is_empty() {
@@ -106,13 +111,13 @@ impl<'a> Iterator for DepthLimitedPermutationGroupIterator<'a> {
                     }
                 }
             } else {
-                println!("Queue is empty");
+                error!("Error in DepthLimitedPermutationGroupIterator: Queue is empty");
                 return None;
             }
         }
         let result = self.frontier.pop_front();
         if self.queue.is_empty() && result.is_none() {
-            println!("Frontier is empty");
+            info!("Group Iterator Frontier is now empty, proceeding ...");
             return None;
         } else if result.is_none() {
             return self.next();
@@ -216,5 +221,45 @@ mod depth_limited_permutation_group_iterator_tests {
         // symmetric group of 5 elements has 120 elements
         assert_eq!(counter, 120);
         assert_eq!(iterator.next(), None);
+    }
+
+    #[test]
+    fn test_perm_group_iterator() {
+        let generators = vec![
+            Permutation::parse_permutation_from_cycle("(1,2)", 3),
+            Permutation::parse_permutation_from_cycle("(2,3)", 3),
+        ];
+        let mut gen_to_index = HashMap::new();
+        gen_to_index.insert(generators[0].clone(), 0);
+        gen_to_index.insert(generators[1].clone(), 1);
+        let mut iterator = PermutationGroupIterator::new(&gen_to_index);
+        let mut counter = 0;
+        while let Some((path, perm)) = iterator.next() {
+            assert_path_equals_permutation(&path.arr, &perm, &generators);
+            counter += 1;
+        }
+        assert_eq!(counter, 6);
+    }
+
+    #[test]
+    fn test_perm_group_iterator_larger() {
+        let generators = vec![
+            Permutation::parse_permutation_from_cycle("(1,2)", 5),
+            Permutation::parse_permutation_from_cycle("(2,3)", 5),
+            Permutation::parse_permutation_from_cycle("(3,4)", 5),
+            Permutation::parse_permutation_from_cycle("(4,5)", 5),
+        ];
+        let mut gen_to_index = HashMap::new();
+        gen_to_index.insert(generators[0].clone(), 0);
+        gen_to_index.insert(generators[1].clone(), 1);
+        gen_to_index.insert(generators[2].clone(), 2);
+        gen_to_index.insert(generators[3].clone(), 3);
+        let mut iterator = PermutationGroupIterator::new(&gen_to_index);
+        let mut counter = 0;
+        while let Some((path, perm)) = iterator.next() {
+            assert_path_equals_permutation(&path.arr, &perm, &generators);
+            counter += 1;
+        }
+        assert_eq!(counter, 120);
     }
 }
