@@ -1,3 +1,5 @@
+use std::fmt::Formatter;
+use std::fmt::Display;
 use std::collections::HashMap;
 use std::error::Error;
 use csv;
@@ -20,7 +22,7 @@ struct MoveData {
 
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub(crate) enum PuzzleType {
+pub enum PuzzleType {
     CUBE(usize),
     WREATH(usize),
     GLOBE(usize, usize),
@@ -74,7 +76,7 @@ pub fn build_element_map() -> HashMap<String, usize> {
     element_map
 }
 
-pub fn load_puzzles(puzzle_info_path : &str, puzzles_path: &str) -> Result<Vec<Puzzle>, Box<dyn Error>> {
+pub fn load_puzzle_info(puzzle_info_path : &str) -> Result<HashMap<PuzzleType, Vec<Move>>, Box<dyn Error>> {
     let mut puzzle_info_reader = csv::Reader::from_path(puzzle_info_path)?;
 
     let mut allowed_moves = HashMap::new();
@@ -86,13 +88,10 @@ pub fn load_puzzles(puzzle_info_path : &str, puzzles_path: &str) -> Result<Vec<P
         let moves_data: MoveData = serde_json::from_str(&record[1].replace("'", "\"")).expect("Failed to parse moves data");
         for (name, permutation) in moves_data.data {
             let perm = Permutation::new(permutation.iter().map(|x| *x + 1).collect());
-            if perm != perm.inverse() {
-                moves.push(Move {
-                    name: format!("-{}", name),
-                    permutation: perm.inverse(),
-
-                });
-            }
+            moves.push(Move {
+                name: format!("-{}", name),
+                permutation: perm.inverse(),
+            });
             moves.push(Move {
                 name,
                 permutation: perm,
@@ -101,6 +100,10 @@ pub fn load_puzzles(puzzle_info_path : &str, puzzles_path: &str) -> Result<Vec<P
         allowed_moves.insert(puzzle_type, moves);
     }
 
+    Ok(allowed_moves)
+}
+
+pub fn load_puzzles(puzzles_path: &str, allowed_moves: &HashMap<PuzzleType, Vec<Move>>) -> Result<Vec<Puzzle>, Box<dyn Error>> {
     let mut puzzles : Vec<Puzzle> = Vec::new();
     let mut puzzles_reader = csv::Reader::from_path(puzzles_path)?;
     let element_map = build_element_map();
@@ -152,6 +155,17 @@ pub fn moves_from_string(s: &str, moves: &Vec<Move>) -> Vec<Move> {
     result
 }
 
+impl Display for PuzzleType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PuzzleType::CUBE(n) => write!(f, "cube_{}_{}_{}", n, n, n),
+            PuzzleType::WREATH(n) => write!(f, "wreath_{}_{}", n, n),
+            PuzzleType::GLOBE(n, m) => write!(f, "globe_{}_{}", n, m),
+        }
+    }
+
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -174,7 +188,8 @@ mod tests {
 
     #[test]
     fn test_load_puzzles() {
-        let puzzles = load_puzzles("./../../data/puzzle_info.csv", "./../../data/puzzles.csv").unwrap();
+        let puzzle_info = load_puzzle_info("./../../data/puzzle_info.csv").unwrap();
+        let puzzles = load_puzzles("./../../data/puzzles.csv", &puzzle_info).unwrap();
         assert_eq!(puzzles.len(), 398);
         assert_eq!(puzzles[0].initial_state, vec![4, 5, 4, 1, 5, 2, 1, 2, 3, 1, 3, 1, 4, 3, 4, 6, 6, 6, 5, 5, 2, 6, 2, 3]);
     }
@@ -183,7 +198,9 @@ mod tests {
     fn test_solution() {
         let id = 368;
         let solution = "-f2.-f2.-r3.-f3.-f4.r3.-f3.-f7.-f2.-f7.-f3.-r3.-f4.-r0.-r1.-f0.r0.-f0.r0.r1.-r0.-f4.r0.r3.-f3.r3.-r3.-f2.-f1.-f5.r3.-f7.-r3.-f5.-f1.-f3.r3.-f2.-f2.-f3.-f2.-f2.-r3.-f3.-f2.r3.-r3.-f4.-f7.-f2.-f7.-f4.r3.-f3.-f0.-f5.-f0.-f3.-f3.-f2.-r0.-f3.r0.-f3.r3.-f2.-f2.-f2.-r3.-f3.-r3.-f4.-f7.-f2.-f7.-f4.r3.-f3.-f0.-f5.-f0.-f3.r3.r3.-f4.r0.-f1.r0.-r0.-r0.-f1.-r3.-f1.r3.-f1.-f4.r3.r3.r3.r3.r2.-f2.-r2.-f2.-r1.-f3.r1.-f3.-f2.r1.-f2.-r1.-f2.-r2.-f2.-f2.r2.-f2.-r1.-f4.-r1.-f4.r1.r1.r1.r1.-f0.r2.-f0.-r1.-r1.-f2.-r2.-f2.-f1.-r2.-f1.-r1.-f2.r1.-f2.r2.-r0.-f0.-f4.-f0.r1.r0.r3.-f3.-r1.-f3.-r2.-f3.-r1.-f4.-r3.-r0.-f5.r0.r1.r2.-f7.-f5.-f7.-r0.-r1.-f0.-f6.-f0.r0.r1.r2.-f0.-r1.-f0.-r1.-r0.-f5.r0.r3.-f4.r1.-f3.r2.-f3.-f1.-r2.-f1.-r1.-f2.r1.-f2.-r1.-r1.-r1.-r0.-f1.r3.-f0.-f0.r0.-f0.r1.-r0.-f3.r0.r3.-f2.-f2.r2.-f2.r1.-f2.-r1.-f2.-r2.-r2.-r2.-r2.-f0.-r1.-f0.-f3.-r2.-f3.-r1.-r1.-f4.r1.-f4.r1.-f2.-r2.-f2.-f2.r2.-f2.r1.-f2.-r1.-f2.-f3.-r1.-f3.r1.-f2.r2.-f2.-r2.r2.-r0.-f0.-f4.-f0.r1.r0.r3.-f3.-r1.-f3.-r2.-f3.-r1.-f4.-r3.-r0.-f5.r0.r1.-r1.-f4.-r1.-f4.r1.r1.-r2.-r0.-f2.r0.r3.-f1.-r1.-r1.-f0.-r0.-r0.-f0.-f0.-r3.-f1.r0.-f0.-r3.-f1.r0.-f0.r0.r0.-f0.-r0.-f5.r0.-r0.-f1.r3.-f0.r3.r3.r3.r3.-f2.-r3.-r0.-f3.r0.-f4.-r0.-f4.r0.-f7.-r0.-f7.-f4.-f4.-f6.-r0.-r0.-f6.-f3.-f2.-f0.-r0.-r0.-f0.-f4.-r3.-r3.-r0.-f1.r3.-f0.-r0.-f5.r0.-f4.-f4.-r0.-f4.r0.-f7.-r0.-f7.-f4.-r0.-f5.r0.-f0.-r3.-f1.r0.-f2.-f0.-f6.r0.-f0.-f2.-f4.r3.-f4.-f1.-r3.-f1.r3.-f1.r0.r0.-r0.-f1.-r0.-f4.-r3.-r3.-f4.-f1.-r3.-f1.r3.-f1.r0.r0.-r0.-f1.-r0.-f4.-r3.-r3.-f7.-f2.-f7.-f5.r0.-f5.r3.-f1.-f1.-r3.-f6.-f4";
-        let puzzle = load_puzzles("./../../data/puzzle_info.csv", "./../../data/puzzles.csv").unwrap()[id].clone();
+        let puzzle_info = load_puzzle_info("./../../data/puzzle_info.csv").unwrap();
+        let puzzles = load_puzzles("./../../data/puzzles.csv", &puzzle_info).unwrap();
+        let puzzle = puzzles.iter().find(|p| p.id == id).unwrap();
         let moves = moves_from_string(solution, &puzzle.moves);
         // Apply the moves to the initial state
         let mut state = puzzle.initial_state.clone();

@@ -1,16 +1,10 @@
+use santa_solver_lib::ktt_solver;
 use ctrlc2;
 use env_logger;
 use log::{debug, info};
 use std::collections::HashMap;
-
-mod groups;
-mod kalka_teicher_tsaban;
-mod ktt_solver;
-mod minkwitz;
-mod permutation;
-mod puzzle;
-mod schreier;
-mod wreath;
+use std::process::exit;
+use santa_solver_lib::puzzle;
 
 fn write_solution_to_file(solution_path: &str, results: &HashMap<usize, String>) {
     debug!("Writing solution to file...");
@@ -42,7 +36,8 @@ fn main() {
         "./../../data/solutions.csv"
     };
     debug!("Loading puzzle data...");
-    let puzzles = puzzle::load_puzzles(puzzle_info_path, puzzles_path).unwrap();
+    let puzzles_data = puzzle::load_puzzle_info(puzzle_info_path).unwrap();
+    let puzzles = puzzle::load_puzzles(puzzle_info_path, &puzzles_data).unwrap();
     info!("Loaded {} puzzles", puzzles.len());
 
     // Catch interrupts so we can write the solution to a file
@@ -64,6 +59,24 @@ fn main() {
         })
         .cloned()
         .collect();
+
+    // Count the puzzles with unique elements, no wildcards, and len(initial_state) <= 32
+    let mut minko_solve = Vec::new();
+    for puzzle in puzzles.iter() {
+        if puzzle.num_wildcards > 0 {
+            continue;
+        }
+        if puzzle.initial_state.iter().collect::<std::collections::HashSet<_>>().len() != puzzle.initial_state.len() {
+            continue;
+        }
+        if puzzle.initial_state.len() > 32 {
+            continue;
+        }
+        minko_solve.push(puzzle.id);
+    }
+    println!("Minko solve: {:?}", minko_solve);
+    exit(0);
+
     /*
         let wreath_puzzles: Vec<puzzle::Puzzle> = puzzles.iter().filter(|p| {
             if let puzzle::PuzzleType::WREATH(n) = p.puzzle_type {

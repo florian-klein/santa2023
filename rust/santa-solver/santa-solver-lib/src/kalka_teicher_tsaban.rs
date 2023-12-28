@@ -1,7 +1,8 @@
 use crate::groups::PermutationGroupIterator;
 use crate::permutation::{Permutation, PermutationInfo};
 use std::collections::{HashMap, HashSet};
-use log::{debug, warn};
+use std::str::FromStr;
+use log::{debug, info, warn};
 
 fn to_2_cycle(p: &PermutationInfo) -> Vec<Vec<usize>> {
     let cycles = &p.cycles; // disjoint cycles of arbitrary length
@@ -31,7 +32,7 @@ fn to_3_cycle(p: &PermutationInfo) -> Vec<Vec<usize>> {
     to_2_cycle(p)
 }
 
-fn find_c_cycle(
+pub fn find_c_cycle(
     gen_to_str: &HashMap<Permutation, String>,
     c: usize,
     n: usize,
@@ -42,7 +43,7 @@ fn find_c_cycle(
     let mut i = 0;
     for (tau_path, tau) in generator {
         i += 1;
-        if i % 100 == 0 {
+        if i % 1000 == 0 {
             debug!("Generators tried: {:?}", i);
         }
         'inner: for m in 1..=n {
@@ -68,9 +69,66 @@ fn find_c_cycle(
                 path = vec![tau_path; m].join(".");
                 return Some((path, mu))
             }
+            if i >= 100000 {
+                warn!("Aborting after trying {} generators", i);
+                return None;
+            }
         }
     }
     None
+}
+
+pub fn generate_transpositions(gen_to_str: &HashMap<Permutation, String>, mu: &Permutation, mu_path: &str, n: usize) -> HashMap<Permutation, String> {
+    let mut a_0: HashMap<Permutation, String> = HashMap::new(); // A_{l-1}, previous iteration
+    let mut a_l: HashMap<Permutation, String> = HashMap::new(); // A_l, current iteration
+    let mut a_union: HashMap<Permutation, String> = HashMap::new(); // a_0 union A_1 union ... union A_l
+    a_0.insert(mu.clone(), String::from_str(mu_path).unwrap());
+    let generators = &gen_to_str
+        .keys()
+        .map(|x| x.clone())
+        .collect::<Vec<Permutation>>();
+    loop {
+        a_l.clear();
+        for gen in generators {
+            let s_i = gen;
+            let s_i_inv = &s_i.inverse();
+            let s_i_path = gen_to_str.get(s_i).unwrap().to_string();
+            let s_i_inv_path = gen_to_str.get(s_i_inv).unwrap().to_string();
+            for (a, a_path) in &a_0 {
+                // calculate s_i^eps * a * s_i^-eps and check membership
+                let perm_eps_pos = s_i_inv.compose(&a.compose(s_i));
+                let perm_eps_neg = s_i.compose(&a.compose(s_i_inv));
+
+                // A_union = (a_0 union a_1 union ... union A_{l-1}) at this point
+                if !a_union.contains_key(&perm_eps_pos) && !a_l.contains_key(&perm_eps_pos) {
+                    // Is the a_l check necessary?
+                    a_l.insert(
+                        perm_eps_pos,
+                        s_i_inv_path.clone() + "." + a_path + "." + &s_i_path,
+                    );
+                }
+                if !a_union.contains_key(&perm_eps_neg) && !a_l.contains_key(&perm_eps_neg) {
+                    a_l.insert(
+                        perm_eps_neg,
+                        s_i_path.clone() + "." + a_path + "." + &s_i_inv_path,
+                    );
+                }
+            }
+        }
+        // check if we could find elements in next iteration
+        if a_l.is_empty() {
+            return a_union;
+        }
+        // add A_{l} to A_union by extending A_union
+        // reassign s.t. we can reach A_{l} in next iteration A_{l+1}
+        // Move items out of a_l into a_union
+        a_union.extend(a_l.clone());
+        std::mem::swap(&mut a_0, &mut a_l);
+        if a_union.len() > n {
+            info!("Aborting after finding {} elements", a_union.len());
+            return a_union;
+        }
+    }
 }
 
 pub fn factorize(gen_to_str: &HashMap<Permutation, String>, target: &Permutation) -> Option<String> {
@@ -192,7 +250,7 @@ mod tests {
     fn test_to_2_cycle() {
         let p = Permutation::from_cycles(&vec![vec![1, 2, 3], vec![4, 5]]);
         let result = to_2_cycle(&p.compute_info());
-        assert_eq!(result, vec![vec![1, 2], vec![2, 3], vec![3, 1], vec![4, 5]]);
+        assert_eq!(result, vec![vec![1, 2], vec![2, 3], vec![3, 1], vec![4, 5]]);  // TODO: rework
     }
 
     #[test]
