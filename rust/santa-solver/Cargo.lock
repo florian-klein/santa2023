@@ -215,6 +215,17 @@ dependencies = [
  "ctrlc2",
  "env_logger",
  "log",
+ "santa-solver-lib",
+]
+
+[[package]]
+name = "santa-solver-lib"
+version = "0.1.0"
+dependencies = [
+ "csv",
+ "ctrlc2",
+ "env_logger",
+ "log",
  "serde",
  "serde_json",
 ]

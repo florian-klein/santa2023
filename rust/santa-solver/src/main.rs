@@ -37,7 +37,7 @@ fn main() {
     };
     debug!("Loading puzzle data...");
     let puzzles_data = puzzle::load_puzzle_info(puzzle_info_path).unwrap();
-    let puzzles = puzzle::load_puzzles(puzzle_info_path, &puzzles_data).unwrap();
+    let puzzles = puzzle::load_puzzles(puzzles_path, &puzzles_data).unwrap();
     info!("Loaded {} puzzles", puzzles.len());
 
     // Catch interrupts so we can write the solution to a file

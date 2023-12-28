@@ -45,7 +45,7 @@ impl PuzzleType {
             "cube" => Ok(PuzzleType::CUBE(parts[1].parse()?)),
             "wreath" => Ok(PuzzleType::WREATH(parts[1].parse()?)),
             "globe" => Ok(PuzzleType::GLOBE(parts[1].parse()?, parts[2].parse()?)),
-            _ => Err("Unknown puzzle type".into()),
+            _ => Err(format!("Unknown puzzle type {}", parts[0]).into()),
         }
     }
 }
