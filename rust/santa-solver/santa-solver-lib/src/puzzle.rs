@@ -188,18 +188,18 @@ mod tests {
 
     #[test]
     fn test_load_puzzles() {
-        let puzzle_info = load_puzzle_info("./../../data/puzzle_info.csv").unwrap();
-        let puzzles = load_puzzles("./../../data/puzzles.csv", &puzzle_info).unwrap();
+        let puzzle_info = load_puzzle_info("./../../../data/puzzle_info.csv").unwrap();
+        let puzzles = load_puzzles("./../../../data/puzzles.csv", &puzzle_info).unwrap();
         assert_eq!(puzzles.len(), 398);
         assert_eq!(puzzles[0].initial_state, vec![4, 5, 4, 1, 5, 2, 1, 2, 3, 1, 3, 1, 4, 3, 4, 6, 6, 6, 5, 5, 2, 6, 2, 3]);
     }
 
     #[test]
     fn test_solution() {
-        let id = 368;
-        let solution = "-f2.-f2.-r3.-f3.-f4.r3.-f3.-f7.-f2.-f7.-f3.-r3.-f4.-r0.-r1.-f0.r0.-f0.r0.r1.-r0.-f4.r0.r3.-f3.r3.-r3.-f2.-f1.-f5.r3.-f7.-r3.-f5.-f1.-f3.r3.-f2.-f2.-f3.-f2.-f2.-r3.-f3.-f2.r3.-r3.-f4.-f7.-f2.-f7.-f4.r3.-f3.-f0.-f5.-f0.-f3.-f3.-f2.-r0.-f3.r0.-f3.r3.-f2.-f2.-f2.-r3.-f3.-r3.-f4.-f7.-f2.-f7.-f4.r3.-f3.-f0.-f5.-f0.-f3.r3.r3.-f4.r0.-f1.r0.-r0.-r0.-f1.-r3.-f1.r3.-f1.-f4.r3.r3.r3.r3.r2.-f2.-r2.-f2.-r1.-f3.r1.-f3.-f2.r1.-f2.-r1.-f2.-r2.-f2.-f2.r2.-f2.-r1.-f4.-r1.-f4.r1.r1.r1.r1.-f0.r2.-f0.-r1.-r1.-f2.-r2.-f2.-f1.-r2.-f1.-r1.-f2.r1.-f2.r2.-r0.-f0.-f4.-f0.r1.r0.r3.-f3.-r1.-f3.-r2.-f3.-r1.-f4.-r3.-r0.-f5.r0.r1.r2.-f7.-f5.-f7.-r0.-r1.-f0.-f6.-f0.r0.r1.r2.-f0.-r1.-f0.-r1.-r0.-f5.r0.r3.-f4.r1.-f3.r2.-f3.-f1.-r2.-f1.-r1.-f2.r1.-f2.-r1.-r1.-r1.-r0.-f1.r3.-f0.-f0.r0.-f0.r1.-r0.-f3.r0.r3.-f2.-f2.r2.-f2.r1.-f2.-r1.-f2.-r2.-r2.-r2.-r2.-f0.-r1.-f0.-f3.-r2.-f3.-r1.-r1.-f4.r1.-f4.r1.-f2.-r2.-f2.-f2.r2.-f2.r1.-f2.-r1.-f2.-f3.-r1.-f3.r1.-f2.r2.-f2.-r2.r2.-r0.-f0.-f4.-f0.r1.r0.r3.-f3.-r1.-f3.-r2.-f3.-r1.-f4.-r3.-r0.-f5.r0.r1.-r1.-f4.-r1.-f4.r1.r1.-r2.-r0.-f2.r0.r3.-f1.-r1.-r1.-f0.-r0.-r0.-f0.-f0.-r3.-f1.r0.-f0.-r3.-f1.r0.-f0.r0.r0.-f0.-r0.-f5.r0.-r0.-f1.r3.-f0.r3.r3.r3.r3.-f2.-r3.-r0.-f3.r0.-f4.-r0.-f4.r0.-f7.-r0.-f7.-f4.-f4.-f6.-r0.-r0.-f6.-f3.-f2.-f0.-r0.-r0.-f0.-f4.-r3.-r3.-r0.-f1.r3.-f0.-r0.-f5.r0.-f4.-f4.-r0.-f4.r0.-f7.-r0.-f7.-f4.-r0.-f5.r0.-f0.-r3.-f1.r0.-f2.-f0.-f6.r0.-f0.-f2.-f4.r3.-f4.-f1.-r3.-f1.r3.-f1.r0.r0.-r0.-f1.-r0.-f4.-r3.-r3.-f4.-f1.-r3.-f1.r3.-f1.r0.r0.-r0.-f1.-r0.-f4.-r3.-r3.-f7.-f2.-f7.-f5.r0.-f5.r3.-f1.-f1.-r3.-f6.-f4";
-        let puzzle_info = load_puzzle_info("./../../data/puzzle_info.csv").unwrap();
-        let puzzles = load_puzzles("./../../data/puzzles.csv", &puzzle_info).unwrap();
+        let id = 284;
+        let solution = "l.-r.l.r.-l.-l.r.l.-r.-l.-r.-r.l.-r.-l.-r.-r.l.-r.-l.-r.-r.-r.l.l.-r.-l.r.-l.r.-l.-l.r.l.-r.-l.-r.-r.l.-r.-l.-r.-r.l.-r.-l.-r.-r.-r.l.l.-r";
+        let puzzle_info = load_puzzle_info("./../../../data/puzzle_info.csv").unwrap();
+        let puzzles = load_puzzles("./../../../data/puzzles.csv", &puzzle_info).unwrap();
         let puzzle = puzzles.iter().find(|p| p.id == id).unwrap();
         let moves = moves_from_string(solution, &puzzle.moves);
         // Apply the moves to the initial state

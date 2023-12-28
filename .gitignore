@@ -2,6 +2,6 @@
 *.bin
 *.o
 *.out
-rust/santa-solver/Cargo.lock
+*.lock
 rust/santa-solver/target/*
 
