@@ -1,4 +1,5 @@
 /python/santa_utils/solutions/
+rust/santa-solver/santa-solver-lib/target/
 *.bin
 *.o
 *.out
