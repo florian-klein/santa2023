@@ -161,6 +161,31 @@ impl Permutation {
         CompressedPermutation::new(m)
     }
 
+    //early exit, if a cycle is longer than max
+    pub fn cycle_decomposition_max(&self, max: usize) -> Option<Vec<Vec<usize>>> {
+        let mut cycles = Vec::new();
+        let mut visited = vec![false; self.len()];
+        for i in 0..self.len() {
+            if !visited[i] {
+                let mut cycle = Vec::new();
+                let mut cur_cycle_len = 0;
+                let mut j = i;
+                while !visited[j] {
+                    visited[j] = true;
+                    cycle.push(j + 1);
+                    cur_cycle_len += 1;
+                    if cur_cycle_len > max {
+                        eprintln!("Cycle too long, aborting");
+                        return None;
+                    }
+                    j = self.p[j] - 1;
+                }
+                cycles.push(cycle);
+            }
+        }
+        Some(cycles)
+    }
+
     pub fn compute_info(&self) -> PermutationInfo {
         let mut cycles = Vec::with_capacity(64);
         let cycle_len = self.len() / 2; 
