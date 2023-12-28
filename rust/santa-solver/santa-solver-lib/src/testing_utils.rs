@@ -60,6 +60,29 @@ impl TestingUtils {
         assert!(result);
     }
 
+    pub fn assert_index_path_equals_permutation_using_hashmap(
+        path: &Vec<usize>,
+        perm: &Permutation,
+        perm_to_index: &HashMap<Permutation, PermutationIndex>,
+    ) -> () {
+        let mut result = Permutation::identity(perm.len());
+        for i in path {
+            // apply index_to_perm to resut
+            let perm = perm_to_index
+                .iter()
+                .find(|(_, index)| **index == *i)
+                .unwrap()
+                .0;
+            result = perm.compose(&result);
+        }
+        if result != *perm {
+            println!("path: {:?}", path);
+            println!("result: {:?}", result);
+            println!("perm: {:?}", perm);
+        }
+        assert!(result == *perm);
+    }
+
     pub fn assert_index_path_equals_permutation(
         path: &Vec<usize>,
         perm: &Permutation,

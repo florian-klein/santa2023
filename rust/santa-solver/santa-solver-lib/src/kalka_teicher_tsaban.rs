@@ -1,5 +1,6 @@
 use crate::groups::PermutationGroupIterator;
 use crate::permutation::{Permutation, PermutationIndex, PermutationInfo, PermutationPath};
+use crate::testing_utils::TestingUtils;
 use log::{debug, info, warn};
 use std::collections::{HashMap, HashSet};
 
@@ -109,7 +110,6 @@ pub fn generate_transpositions(
                     al_path.push(*s_i_inv_path);
                     al_path.merge(a_path);
                     al_path.push(*s_i_path);
-
                     a_l.insert(perm_eps_pos, al_path);
                 }
                 if !a_union.contains_key(&perm_eps_neg) && !a_l.contains_key(&perm_eps_neg) {
@@ -259,6 +259,20 @@ mod tests {
     use crate::testing_utils::TestingUtils;
 
     use super::*;
+
+    #[test]
+    fn test_generate_transposition() {
+        let gen_to_index = TestingUtils::get_generator_to_perm_index_map_s_n(5);
+        let (mu_path, mu) = find_c_cycle(&gen_to_index, 2, 5).unwrap();
+        let result = generate_transpositions(&gen_to_index, &mu, &mu_path, 10);
+        for (perm, path) in result {
+            TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                &path.arr,
+                &perm,
+                &gen_to_index,
+            );
+        }
+    }
 
     #[test]
     fn test_find_c_cycle_s_5() {
