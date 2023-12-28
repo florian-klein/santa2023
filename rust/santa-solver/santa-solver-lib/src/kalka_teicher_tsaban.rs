@@ -249,6 +249,11 @@ pub fn factorize(
             // We have found a short expression for all c-cycles
             // Return a_union
             let result = a_union.get(target).unwrap();
+            TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                &result.arr,
+                &target,
+                &gen_to_idx,
+            );
             return Some(result.to_string(&gen_to_str));
         }
     }
@@ -312,123 +317,75 @@ mod tests {
         }
     }
     //
-    // #[test]
-    // fn factorize_simple() {
-    //     let gen1 = Permutation::parse_permutation_from_cycle("(1,2)", 3);
-    //     let gen2 = Permutation::parse_permutation_from_cycle("(2,3)", 3);
-    //     let gen3 = gen1.inverse();
-    //     let gen4 = gen2.inverse();
-    //     let mut gen_to_str: HashMap<Permutation, usize> = HashMap::new();
-    //     let mut str_to_gen: HashMap<String, Permutation> = HashMap::new();
-    //     gen_to_str.insert(gen1.clone(), 0);
-    //     gen_to_str.insert(gen2.clone(), 1);
-    //     gen_to_str.insert(gen3.clone(), 2);
-    //     gen_to_str.insert(gen4.clone(), 3);
-    //     str_to_gen.insert("gen1".to_string(), gen1.clone());
-    //     str_to_gen.insert("gen2".to_string(), gen2.clone());
-    //     str_to_gen.insert("-gen1".to_string(), gen3.clone());
-    //     str_to_gen.insert("-gen2".to_string(), gen4.clone());
-    //     let target = Permutation::new(vec![1, 3, 2]);
-    //
-    //     let gen_to_idx = gen_to_str
-    //         .iter()
-    //         .enumerate()
-    //         .map(|(i, (p, _))| (p.clone(), i))
-    //         .collect::<HashMap<Permutation, PermutationIndex>>();
-    //     let index_to_gen_name = vec!["gen1".to_string(), "gen2".to_string()];
-    //     let result = factorize(&gen_to_idx, index_to_gen_name, &target).unwrap();
-    //     debug!("result: {:?}", result);
-    //     // check if result is correct (factorization results in target permutation)
-    //     let mut result_perm = Permutation::identity(3);
-    //     for move_name in result.split(".") {
-    //         println!("move_name: {:?}", move_name);
-    //         let move_perm = str_to_gen.get(move_name).unwrap();
-    //         result_perm = move_perm.compose(&result_perm);
-    //     }
-    //     debug!("result: {:?}", result_perm);
-    //     debug!("target: {:?}", target);
-    //     assert_eq!(result_perm, target);
-    // }
+    #[test]
+    fn factorize_simple() {
+        let gen1 = Permutation::parse_permutation_from_cycle("(1,2)", 3);
+        let gen2 = Permutation::parse_permutation_from_cycle("(2,3)", 3);
+        let gen3 = gen1.inverse();
+        let gen4 = gen2.inverse();
+        let mut gen_to_str: HashMap<Permutation, usize> = HashMap::new();
+        let mut str_to_gen: HashMap<String, Permutation> = HashMap::new();
+        gen_to_str.insert(gen1.clone(), 0);
+        gen_to_str.insert(gen2.clone(), 1);
+        gen_to_str.insert(gen3.clone(), 2);
+        gen_to_str.insert(gen4.clone(), 3);
+        str_to_gen.insert("gen1".to_string(), gen1.clone());
+        str_to_gen.insert("gen2".to_string(), gen2.clone());
+        str_to_gen.insert("-gen1".to_string(), gen3.clone());
+        str_to_gen.insert("-gen2".to_string(), gen4.clone());
+        let target = Permutation::new(vec![1, 3, 2]);
 
-    // #[test]
-    // fn factorize_larger() {
-    //     let gen1 = Permutation::parse_permutation_from_cycle("(1,2)", 10);
-    //     let gen2 = Permutation::parse_permutation_from_cycle("(2,3)", 10);
-    //     let gen3 = Permutation::parse_permutation_from_cycle("(3,4)", 10);
-    //     let gen4 = Permutation::parse_permutation_from_cycle("(4,5)", 10);
-    //     let gen5 = Permutation::parse_permutation_from_cycle("(5,6)", 10);
-    //     let gen6 = Permutation::parse_permutation_from_cycle("(6,7)", 10);
-    //     let gen7 = Permutation::parse_permutation_from_cycle("(7,8)", 10);
-    //     let gen8 = Permutation::parse_permutation_from_cycle("(8,9)", 10);
-    //     let gen9 = Permutation::parse_permutation_from_cycle("(9,10)", 10);
-    //     let gen1_inv = gen1.inverse();
-    //     let gen2_inv = gen2.inverse();
-    //     let gen3_inv = gen3.inverse();
-    //     let gen4_inv = gen4.inverse();
-    //     let gen5_inv = gen5.inverse();
-    //     let gen6_inv = gen6.inverse();
-    //     let gen7_inv = gen7.inverse();
-    //     let gen8_inv = gen8.inverse();
-    //     let gen9_inv = gen9.inverse();
-    //
-    //     let mut gen_to_str: HashMap<Permutation, String> = HashMap::new();
-    //     let mut str_to_gen: HashMap<String, Permutation> = HashMap::new();
-    //     str_to_gen.insert("gen1".to_string(), gen1.clone());
-    //     str_to_gen.insert("gen2".to_string(), gen2.clone());
-    //     str_to_gen.insert("gen3".to_string(), gen3.clone());
-    //     str_to_gen.insert("gen4".to_string(), gen4.clone());
-    //     str_to_gen.insert("gen5".to_string(), gen5.clone());
-    //     str_to_gen.insert("gen6".to_string(), gen6.clone());
-    //     str_to_gen.insert("gen7".to_string(), gen7.clone());
-    //     str_to_gen.insert("gen8".to_string(), gen8.clone());
-    //     str_to_gen.insert("gen9".to_string(), gen9.clone());
-    //
-    //     str_to_gen.insert("-gen1".to_string(), gen1_inv.clone());
-    //     str_to_gen.insert("-gen2".to_string(), gen2_inv.clone());
-    //     str_to_gen.insert("-gen3".to_string(), gen3_inv.clone());
-    //     str_to_gen.insert("-gen4".to_string(), gen4_inv.clone());
-    //     str_to_gen.insert("-gen5".to_string(), gen5_inv.clone());
-    //     str_to_gen.insert("-gen6".to_string(), gen6_inv.clone());
-    //     str_to_gen.insert("-gen7".to_string(), gen7_inv.clone());
-    //     str_to_gen.insert("-gen8".to_string(), gen8_inv.clone());
-    //     str_to_gen.insert("-gen9".to_string(), gen9_inv.clone());
-    //     let index_to_gen_name = vec![
-    //         "gen1".to_string(),
-    //         "gen2".to_string(),
-    //         "gen3".to_string(),
-    //         "gen4".to_string(),
-    //         "gen5".to_string(),
-    //         "gen6".to_string(),
-    //         "gen7".to_string(),
-    //         "gen8".to_string(),
-    //         "gen9".to_string(),
-    //     ];
-    //     for gen in &index_to_gen_name {
-    //         let perm = str_to_gen.get(gen).unwrap();
-    //         gen_to_str.insert(perm.clone(), gen.clone());
-    //         gen_to_str.insert(perm.inverse(), format!("-{}", gen));
-    //     }
-    //
-    //     let target = Permutation::new(vec![1, 2, 3, 4, 5, 6, 7, 9, 8, 10]);
-    //
-    //     let gen_to_idx = gen_to_str
-    //         .iter()
-    //         .enumerate()
-    //         .map(|(i, (p, _))| (p.clone(), i))
-    //         .collect::<HashMap<Permutation, PermutationIndex>>();
-    //
-    //     let result = factorize(&gen_to_idx, index_to_gen_name, &target).unwrap();
-    //     // check if result is correct (factorization results in target permutation)
-    //     println!("result: {:?}", result);
-    //     let mut result_perm = Permutation::identity(10);
-    //     for move_name in result.split(".") {
-    //         let move_perm = str_to_gen.get(move_name).unwrap();
-    //         result_perm = move_perm.compose(&result_perm);
-    //     }
-    //     let mut expected_perm = Permutation::identity(10);
-    //     expected_perm = gen8.compose(&expected_perm);
-    //     debug!("result: {:?}", result_perm);
-    //     debug!("target: {:?}", target);
-    //     assert_eq!(result_perm, expected_perm);
-    // }
+        let gen_to_idx = TestingUtils::get_generator_to_perm_index_map_s_n(3);
+        let index_to_gen_name = vec!["gen1".to_string(), "gen2".to_string()];
+        let result = factorize(&gen_to_idx, index_to_gen_name, &target).unwrap();
+        debug!("result: {:?}", result);
+        // check if result is correct (factorization results in target permutation)
+        let mut result_perm = Permutation::identity(3);
+        for move_name in result.split(".") {
+            println!("move_name: {:?}", move_name);
+            let move_perm = str_to_gen.get(move_name).unwrap();
+            result_perm = move_perm.compose(&result_perm);
+        }
+        debug!("result: {:?}", result_perm);
+        debug!("target: {:?}", target);
+        assert_eq!(result_perm, target);
+    }
+
+    #[test]
+    fn factorize_larger() {
+        let generators = TestingUtils::get_s_n_generators(10);
+
+        let mut gen_to_str: HashMap<Permutation, String> = HashMap::new();
+        let mut str_to_gen: HashMap<String, Permutation> = HashMap::new();
+        for (i, generator) in generators.iter().enumerate() {
+            gen_to_str.insert(generator.clone(), format!("gen{}", i));
+            str_to_gen.insert(format!("gen{}", i), generator.clone());
+        }
+        println!("gen_to_str: {:?}", gen_to_str);
+
+        let index_to_gen_name = vec![
+            "gen0".to_string(),
+            "gen1".to_string(),
+            "gen2".to_string(),
+            "gen3".to_string(),
+            "gen4".to_string(),
+            "gen5".to_string(),
+            "gen6".to_string(),
+            "gen7".to_string(),
+            "gen8".to_string(),
+        ];
+        for gen in &index_to_gen_name {
+            let perm = str_to_gen.get(gen).unwrap();
+            gen_to_str.insert(perm.clone(), gen.clone());
+            gen_to_str.insert(perm.inverse(), format!("-{}", gen));
+        }
+
+        let gen_to_idx = TestingUtils::get_generator_to_perm_index_map_s_n(10);
+
+        let target = Permutation::new(vec![1, 2, 3, 4, 5, 6, 7, 9, 8, 10]);
+
+        let result = factorize(&gen_to_idx, index_to_gen_name, &target).unwrap();
+
+        TestingUtils::assert_permutation_equals_operation_string(&target, result, str_to_gen);
+    }
 }

@@ -37,6 +37,40 @@ impl TestingUtils {
         result
     }
 
+    pub fn get_permutation_from_operation_string(
+        op_str: String,
+        str_to_gen: HashMap<String, Permutation>,
+    ) -> Permutation {
+        let n = str_to_gen.iter().next().unwrap().1.len();
+        let mut result = Permutation::identity(n);
+        // is in format gen1.gen2.-gen1.gen2
+        let operations = op_str.split(".");
+        for operation in operations {
+            if operation.starts_with("-") {
+                let operation = operation.trim_start_matches("-");
+                result = result.compose(&str_to_gen.get(operation).unwrap().inverse());
+            } else {
+                println!("operation: {}", operation);
+                result = result.compose(&str_to_gen.get(operation).unwrap());
+            }
+        }
+        result
+    }
+
+    pub fn assert_permutation_equals_operation_string(
+        perm: &Permutation,
+        op_str: String,
+        str_to_gen: HashMap<String, Permutation>,
+    ) -> () {
+        let perm_from_op_str =
+            TestingUtils::get_permutation_from_operation_string(op_str, str_to_gen);
+        if perm_from_op_str != *perm {
+            println!("perm: {:?}", perm);
+            println!("perm_from_op_str: {:?}", perm_from_op_str);
+        }
+        assert!(perm_from_op_str == *perm);
+    }
+
     pub fn get_index_to_perm_vec_s_n(n: usize) -> Vec<Permutation> {
         let mut result = Vec::new();
         let generators = TestingUtils::get_s_n_generators(n);
