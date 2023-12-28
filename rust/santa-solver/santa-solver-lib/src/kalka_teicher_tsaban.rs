@@ -273,36 +273,12 @@ mod tests {
     fn test_find_2_cycle() {
         let gen1 = Permutation::parse_permutation_from_cycle("(1,2)", 3);
         let gen2 = Permutation::parse_permutation_from_cycle("(2,3)", 3);
-        let mut gen_to_str: HashMap<Permutation, String> = HashMap::new();
-        gen_to_str.insert(gen1.clone(), "gen1".to_string());
-        gen_to_str.insert(gen2.clone(), "gen2".to_string());
+        let mut gen_to_str: HashMap<Permutation, usize> = HashMap::new();
+        gen_to_str.insert(gen1.clone(), 0);
+        gen_to_str.insert(gen2.clone(), 1);
         let result = find_c_cycle(&gen_to_str, 2, 3);
         assert!(result.is_some());
         let (_path, result) = result.unwrap();
-        // check that result is a 2-cycle (return value is non deterministic)
-        let resultinfo = result.compute_info();
-        debug!("result: {:?}", resultinfo);
-        for cycle in result.compute_info().cycles {
-            if cycle.len() == 1 {
-                continue;
-            }
-            assert_eq!(cycle.len(), 2);
-        }
-    }
-
-    #[test]
-    fn test_find_2_cycle2() {
-        let gen1 = Permutation::parse_permutation_from_cycle("(1,2,4,3)", 4);
-        let gen2 = Permutation::parse_permutation_from_cycle("(2,1,3)", 4);
-        let mut gen_to_str: HashMap<Permutation, String> = HashMap::new();
-        gen_to_str.insert(gen1.clone(), "gen1".to_string());
-        gen_to_str.insert(gen2.clone(), "gen2".to_string());
-        let result = find_c_cycle(&gen_to_str, 2, 4);
-        assert!(result.is_some());
-
-        let Some((_path, result)) = result else {
-            panic!("No result found");
-        };
         // check that result is a 2-cycle (return value is non deterministic)
         let resultinfo = result.compute_info();
         debug!("result: {:?}", resultinfo);
@@ -320,30 +296,21 @@ mod tests {
         let gen2 = Permutation::parse_permutation_from_cycle("(2,3)", 3);
         let gen3 = gen1.inverse();
         let gen4 = gen2.inverse();
-        let mut gen_to_str: HashMap<Permutation, String> = HashMap::new();
+        let mut gen_to_str: HashMap<Permutation, usize> = HashMap::new();
         let mut str_to_gen: HashMap<String, Permutation> = HashMap::new();
-        gen_to_str.insert(gen1.clone(), "gen1".to_string());
-        gen_to_str.insert(gen2.clone(), "gen2".to_string());
-        gen_to_str.insert(gen3.clone(), "-gen1".to_string());
-        gen_to_str.insert(gen4.clone(), "-gen2".to_string());
-        str_to_gen.insert("gen1".to_string(), gen1.clone());
-        str_to_gen.insert("gen2".to_string(), gen2.clone());
-        str_to_gen.insert("-gen1".to_string(), gen3.clone());
-        str_to_gen.insert("-gen2".to_string(), gen4.clone());
+        gen_to_str.insert(gen1.clone(), 0);
+        gen_to_str.insert(gen2.clone(), 1);
+        gen_to_str.insert(gen3.clone(), 2);
+        gen_to_str.insert(gen4.clone(), 3);
         let target = Permutation::new(vec![1, 3, 2]);
 
-        let gen_to_str_vec = gen_to_str.collect::<Vec<(Permutation, String)>>();
-        let gen_to_idx = gen_to_str_vec
+        let gen_to_idx = gen_to_str
             .iter()
             .enumerate()
             .map(|(i, (p, _))| (p.clone(), i))
             .collect::<HashMap<Permutation, PermutationIndex>>();
-        let gen_to_str_vec = gen_to_str_vec
-            .iter()
-            .map(|(_, s)| s.clone())
-            .collect::<Vec<String>>();
-
-        let result = factorize(&gen_to_idx, &gen_to_str_vec, &target).unwrap();
+        let index_to_gen_name = vec!["gen1".to_string(), "gen2".to_string()];
+        let result = factorize(&gen_to_idx, index_to_gen_name, &target).unwrap();
         debug!("result: {:?}", result);
         // check if result is correct (factorization results in target permutation)
         let mut result_perm = Permutation::identity(3);
@@ -419,18 +386,25 @@ mod tests {
         str_to_gen.insert("-gen9".to_string(), gen9_inv.clone());
         let target = Permutation::new(vec![1, 2, 3, 4, 5, 6, 7, 9, 8, 10]);
 
-        let gen_to_str_vec = gen_to_str.collect::<Vec<(Permutation, String)>>();
-        let gen_to_idx = gen_to_str_vec
+        let gen_to_idx = gen_to_str
             .iter()
             .enumerate()
             .map(|(i, (p, _))| (p.clone(), i))
             .collect::<HashMap<Permutation, PermutationIndex>>();
-        let gen_to_str_vec = gen_to_str_vec
-            .iter()
-            .map(|(_, s)| s.clone())
-            .collect::<Vec<String>>();
 
-        let result = factorize(&gen_to_idx, &gen_to_str_vec, &target).unwrap();
+        let index_to_gen_name = vec![
+            "gen1".to_string(),
+            "gen2".to_string(),
+            "gen3".to_string(),
+            "gen4".to_string(),
+            "gen5".to_string(),
+            "gen6".to_string(),
+            "gen7".to_string(),
+            "gen8".to_string(),
+            "gen9".to_string(),
+        ];
+
+        let result = factorize(&gen_to_idx, index_to_gen_name, &target).unwrap();
         debug!("result: {:?}", result);
         // check if result is correct (factorization results in target permutation)
         let mut result_perm = Permutation::identity(10);

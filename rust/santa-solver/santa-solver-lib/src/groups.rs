@@ -1,7 +1,7 @@
+use crate::permutation;
 use crate::permutation::{Permutation, PermutationIndex, PermutationPath};
 use std::collections::HashMap;
 use std::collections::{HashSet, VecDeque};
-use crate::permutation;
 
 pub struct PermutationGroupIterator<'a> {
     frontier: VecDeque<(PermutationPath, Permutation)>,
@@ -50,8 +50,7 @@ impl<'a> Iterator for PermutationGroupIterator<'a> {
                     if !self.visited.contains(&new_element) {
                         let mut new_path = element_path.clone();
                         new_path.push(*generator_name);
-                        self.frontier
-                            .push_back((new_path, new_element));
+                        self.frontier.push_back((new_path, new_element));
                     }
                 }
             } else {
@@ -103,8 +102,7 @@ impl<'a> Iterator for DepthLimitedPermutationGroupIterator<'a> {
                     if !self.visited.contains(&new_element) {
                         let mut new_path = element_path.clone();
                         new_path.push(i);
-                        self.frontier
-                            .push_back((new_element, new_path));
+                        self.frontier.push_back((new_element, new_path));
                     }
                 }
             } else {
@@ -139,7 +137,15 @@ mod depth_limited_permutation_group_iterator_tests {
         ];
         let mut iterator = DepthLimitedPermutationGroupIterator::new(&generators, 5);
         let mut result = iterator.next();
-        assert_eq!(result.is_some(), true);
-        assert_eq!(result.unwrap(), (Permutation::new(vec![1, 3, 2, 4]), vec![0]));
+        while let Some((_, path)) = result {
+            println!("{:?}", path);
+            result = iterator.next();
+        }
+        assert_eq!(result.is_some(), false);
+        assert_eq!(0, 1);
+        assert_eq!(
+            result.unwrap(),
+            (Permutation::new(vec![1, 3, 2, 4]), vec![0])
+        );
     }
 }
