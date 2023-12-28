@@ -120,7 +120,6 @@ impl Permutation {
     pub fn compose_in_place(&mut self, other: &Permutation) {
         todo!();
     }
-    
 
     pub fn compose(&self, other: &Permutation) -> Permutation {
         let mut result = vec![0; self.len()];
@@ -188,7 +187,7 @@ impl Permutation {
 
     pub fn compute_info(&self) -> PermutationInfo {
         let mut cycles = Vec::with_capacity(64);
-        let cycle_len = self.len() / 2; 
+        let cycle_len = self.len() / 2;
         let mut visited = vec![false; self.len()];
         let mut even_cycles = 0;
         for i in 0..self.len() {
