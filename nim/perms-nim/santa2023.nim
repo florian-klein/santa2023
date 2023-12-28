@@ -40,25 +40,25 @@ proc factorizeWordUsingKalka(gens: string, perm: Perm, N: static[int]): seq[int]
   assert composeSeq(gens, list) == perm
   return list
 
-# let str_elm = "[4, 5, 30, 25, 0, 2, 1, 3, 18, 14, 20, 15, 17, 9, 8, 13, 19, 22, 10, 16, 12, 21, 11, 23, 26, 7, 6, 27, 31, 24, 28, 29]"
+let str_elm = "[24, 6, 7, 2, 29, 5, 27, 26, 18, 22, 23, 10, 21, 15, 17, 13, 8, 20, 9, 16, 14, 11, 19, 12, 3, 4, 31, 25, 28, 30, 0, 1]"
 # let short_perm = parsePermFromArrayFormat(4, "[2, 0, 1, 3]")
 # echo "signature", short_perm.signature
 
-let gens = 3.parseGens("A: (1 2)\nB: (2 3)").normalize
-let perm = 3.parsePerm("(1 2 4 3)")
-echo perm
-echo perm.signature
+# let gens = 3.parseGens("A: (1 2)\nB: (2 3)").normalize
+# let perm = 3.parsePerm("(1 2 4 3)")
+# echo perm
+# echo perm.signature
 # let list = gens.factorizeK(perm)
 # echo "Solution String in Kaggle Format: ", get_str_repr(gens, list)
 
-# let group_path = "./groups/G_globe_3_4"
-# let size = readPermutationSize(open(group_path, fmRead))
-# let gens = readGeneratorString(open(group_path, fmRead))
-# let myPerm = parsePermFromArrayFormat(32, str_elm)
-# var base : seq[int] = newSeq[int](size)
-# for i in 0..size-1:
-#   base[i] = i
-#
+let group_path = "./groups/G_globe_3_4"
+let size = readPermutationSize(open(group_path, fmRead))
+let gens = readGeneratorString(open(group_path, fmRead))
+let myPerm = parsePermFromArrayFormat(32, str_elm)
+var base : seq[int] = newSeq[int](size)
+for i in 0..size-1:
+  base[i] = i
+
 const length = 32
-# # let result = factorizeWord(gens, base, myPerm, length)
-let result = factorizeWordUsingKalka(gens, perm, length)
+let result = factorizeWord(gens, base, myPerm, length)
+# let result = factorizeWordUsingKalka(gens, perm, length)
