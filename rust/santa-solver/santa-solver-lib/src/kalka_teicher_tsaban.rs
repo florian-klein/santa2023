@@ -49,24 +49,25 @@ pub fn find_c_cycle(
         'inner: for m in 1..=n {
             // Check whether tau.pow(m) is a c-cycle
             tau_pow = tau_pow.compose(&tau);
-            let tau_cycles = tau_pow.compute_info().cycles;
-            let mut found = false;
-            for cycle in tau_cycles {
-                if cycle.len() > 1 {
-                    if cycle.len() == c {
-                        if found {
-                            continue 'inner;
+            if let Some(tau_cycles) = tau_pow.cycle_decomposition_max(c) {
+                let mut found = false;
+                for cycle in tau_cycles {
+                    if cycle.len() > 1 {
+                        if cycle.len() == c {
+                            if found {
+                                continue 'inner;
+                            } else {
+                                found = true;
+                            }
                         } else {
-                            found = true;
+                            continue 'inner;
                         }
-                    } else {
-                        continue 'inner;
                     }
                 }
-            }
-            if found {
-                tau_path.pow(m);
-                return Some((tau_path, tau_pow));
+                if found {
+                    tau_path.pow(m);
+                    return Some((tau_path, tau_pow));
+                }
             }
             if i >= 100000 {
                 warn!("Aborting after trying {} generators", i);

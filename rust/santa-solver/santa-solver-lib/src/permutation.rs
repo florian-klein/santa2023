@@ -174,7 +174,6 @@ impl Permutation {
                     cycle.push(j + 1);
                     cur_cycle_len += 1;
                     if cur_cycle_len > max {
-                        eprintln!("Cycle too long, aborting");
                         return None;
                     }
                     j = self.p[j] - 1;
