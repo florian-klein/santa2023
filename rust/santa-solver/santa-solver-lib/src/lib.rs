@@ -6,4 +6,5 @@ pub mod permutation;
 pub mod puzzle;
 mod schreier;
 mod split_cycles;
+pub mod testing_utils;
 pub mod wreath;

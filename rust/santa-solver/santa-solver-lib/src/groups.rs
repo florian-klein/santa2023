@@ -1,4 +1,5 @@
 use crate::permutation::{Permutation, PermutationIndex, PermutationPath};
+use crate::testing_utils::TestingUtils;
 use log::error;
 use log::info;
 use std::collections::HashMap;
@@ -139,18 +140,6 @@ mod depth_limited_permutation_group_iterator_tests {
     use super::*;
     use crate::permutation::Permutation;
 
-    fn assert_path_equals_permutation(
-        path: &Vec<usize>,
-        perm: &Permutation,
-        index_to_perm: &Vec<Permutation>,
-    ) -> bool {
-        let mut result = Permutation::identity(perm.len());
-        for i in path {
-            result = result.compose(&index_to_perm[*i]);
-        }
-        result == *perm
-    }
-
     #[test]
     fn test_depth_limited_permutation_group_iterator() {
         let generators = vec![
@@ -187,12 +176,7 @@ mod depth_limited_permutation_group_iterator_tests {
 
     #[test]
     fn test_depth_limited_permutation_group_iterator_larger() {
-        let generators = vec![
-            Permutation::parse_permutation_from_cycle("(1,2)", 5),
-            Permutation::parse_permutation_from_cycle("(2,3)", 5),
-            Permutation::parse_permutation_from_cycle("(3,4)", 5),
-            Permutation::parse_permutation_from_cycle("(4,5)", 5),
-        ];
+        let generators = TestingUtils::get_s_n_generators(5);
         let mut iterator = DepthLimitedPermutationGroupIterator::new(&generators, 100);
         assert_eq!(
             iterator.next().unwrap(),
@@ -210,7 +194,7 @@ mod depth_limited_permutation_group_iterator_tests {
         let mut last_perm = Permutation::new(vec![1, 2, 3, 4, 5]);
         let mut last_path = vec![0, 0];
         while let Some((perm, path)) = iterator.next() {
-            assert_path_equals_permutation(&path, &perm, &generators);
+            TestingUtils::assert_index_path_equals_permutation(&path, &perm, &generators);
             last_perm = perm;
             last_path = path;
             counter += 1;
@@ -225,17 +209,14 @@ mod depth_limited_permutation_group_iterator_tests {
 
     #[test]
     fn test_perm_group_iterator() {
-        let generators = vec![
-            Permutation::parse_permutation_from_cycle("(1,2)", 3),
-            Permutation::parse_permutation_from_cycle("(2,3)", 3),
-        ];
+        let generators = TestingUtils::get_s_n_generators(3);
         let mut gen_to_index = HashMap::new();
         gen_to_index.insert(generators[0].clone(), 0);
         gen_to_index.insert(generators[1].clone(), 1);
         let mut iterator = PermutationGroupIterator::new(&gen_to_index);
         let mut counter = 0;
         while let Some((path, perm)) = iterator.next() {
-            assert_path_equals_permutation(&path.arr, &perm, &generators);
+            TestingUtils::assert_index_path_equals_permutation(&path.arr, &perm, &generators);
             counter += 1;
         }
         assert_eq!(counter, 6);
@@ -243,12 +224,7 @@ mod depth_limited_permutation_group_iterator_tests {
 
     #[test]
     fn test_perm_group_iterator_larger() {
-        let generators = vec![
-            Permutation::parse_permutation_from_cycle("(1,2)", 5),
-            Permutation::parse_permutation_from_cycle("(2,3)", 5),
-            Permutation::parse_permutation_from_cycle("(3,4)", 5),
-            Permutation::parse_permutation_from_cycle("(4,5)", 5),
-        ];
+        let generators = TestingUtils::get_s_n_generators(5);
         let mut gen_to_index = HashMap::new();
         gen_to_index.insert(generators[0].clone(), 0);
         gen_to_index.insert(generators[1].clone(), 1);
@@ -257,7 +233,7 @@ mod depth_limited_permutation_group_iterator_tests {
         let mut iterator = PermutationGroupIterator::new(&gen_to_index);
         let mut counter = 0;
         while let Some((path, perm)) = iterator.next() {
-            assert_path_equals_permutation(&path.arr, &perm, &generators);
+            TestingUtils::assert_index_path_equals_permutation(&path.arr, &perm, &generators);
             counter += 1;
         }
         assert_eq!(counter, 120);

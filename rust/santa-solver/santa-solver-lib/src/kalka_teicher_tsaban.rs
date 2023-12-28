@@ -2,7 +2,6 @@ use crate::groups::PermutationGroupIterator;
 use crate::permutation::{Permutation, PermutationIndex, PermutationInfo, PermutationPath};
 use log::{debug, info, warn};
 use std::collections::{HashMap, HashSet};
-use std::str::FromStr;
 
 fn to_2_cycle(p: &PermutationInfo) -> Vec<Vec<usize>> {
     let cycles = &p.cycles; // disjoint cycles of arbitrary length
@@ -39,8 +38,6 @@ pub fn find_c_cycle(
     n: usize,
 ) -> Option<(PermutationPath, Permutation)> {
     let generator = PermutationGroupIterator::new(&gen_to_str);
-    let mut mu = Permutation::identity(n);
-    let mut path: String = "".to_string();
     let mut i = 0;
     for (mut tau_path, tau) in generator {
         i += 1;
@@ -66,7 +63,7 @@ pub fn find_c_cycle(
                 }
             }
             if found {
-                mu = tau_pow;
+                let mu = tau_pow;
                 tau_path.pow(m);
                 return Some((tau_path, mu));
             }
