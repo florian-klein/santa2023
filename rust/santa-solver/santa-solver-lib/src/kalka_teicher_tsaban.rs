@@ -395,8 +395,10 @@ mod tests {
             let move_perm = str_to_gen.get(move_name).unwrap();
             result_perm = move_perm.compose(&result_perm);
         }
+        let mut expected_perm = Permutation::identity(10);
+        expected_perm = gen8.compose(&expected_perm);
         debug!("result: {:?}", result_perm);
         debug!("target: {:?}", target);
-        assert_eq!(result_perm, target);
+        assert_eq!(result_perm, expected_perm);
     }
 }

@@ -1,4 +1,3 @@
-use crate::permutation;
 use crate::permutation::{Permutation, PermutationIndex, PermutationPath};
 use std::collections::HashMap;
 use std::collections::{HashSet, VecDeque};
@@ -91,6 +90,7 @@ impl<'a> Iterator for DepthLimitedPermutationGroupIterator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.current_depth == self.max_depth {
+            println!("Max depth reached");
             return None;
         }
         if self.frontier.is_empty() {
@@ -106,13 +106,18 @@ impl<'a> Iterator for DepthLimitedPermutationGroupIterator<'a> {
                     }
                 }
             } else {
+                println!("Queue is empty");
                 return None;
             }
         }
         let result = self.frontier.pop_front();
-        if result.is_none() {
+        if self.queue.is_empty() && result.is_none() {
+            println!("Frontier is empty");
             return None;
+        } else if result.is_none() {
+            return self.next();
         }
+
         let (element_perm, path) = result.unwrap();
 
         self.visited.insert(element_perm.clone());
@@ -129,23 +134,87 @@ mod depth_limited_permutation_group_iterator_tests {
     use super::*;
     use crate::permutation::Permutation;
 
+    fn assert_path_equals_permutation(
+        path: &Vec<usize>,
+        perm: &Permutation,
+        index_to_perm: &Vec<Permutation>,
+    ) -> bool {
+        let mut result = Permutation::identity(perm.len());
+        for i in path {
+            result = result.compose(&index_to_perm[*i]);
+        }
+        result == *perm
+    }
+
     #[test]
     fn test_depth_limited_permutation_group_iterator() {
         let generators = vec![
-            Permutation::new(vec![1, 3, 2, 4]),
-            Permutation::new(vec![1, 2, 4, 3]),
+            Permutation::parse_permutation_from_cycle("(1,2)", 3),
+            Permutation::parse_permutation_from_cycle("(2,3)", 3),
         ];
-        let mut iterator = DepthLimitedPermutationGroupIterator::new(&generators, 5);
-        let mut result = iterator.next();
-        while let Some((_, path)) = result {
-            println!("{:?}", path);
-            result = iterator.next();
-        }
-        assert_eq!(result.is_some(), false);
-        assert_eq!(0, 1);
+        let mut iterator = DepthLimitedPermutationGroupIterator::new(&generators, 10);
         assert_eq!(
-            result.unwrap(),
-            (Permutation::new(vec![1, 3, 2, 4]), vec![0])
+            iterator.next().unwrap(),
+            (Permutation::new(vec![2, 1, 3]), vec![0])
         );
+        assert_eq!(
+            iterator.next().unwrap(),
+            (Permutation::new(vec![1, 3, 2]), vec![1])
+        );
+        assert_eq!(
+            iterator.next().unwrap(),
+            (Permutation::new(vec![1, 2, 3]), vec![0, 0])
+        );
+        assert_eq!(
+            iterator.next().unwrap(),
+            (Permutation::new(vec![3, 1, 2]), vec![0, 1])
+        );
+        assert_eq!(
+            iterator.next().unwrap(),
+            (Permutation::new(vec![2, 3, 1]), vec![1, 0])
+        );
+        assert_eq!(
+            iterator.next().unwrap(),
+            (Permutation::new(vec![3, 2, 1]), vec![0, 1, 0])
+        );
+        assert_eq!(iterator.next(), None);
+    }
+
+    #[test]
+    fn test_depth_limited_permutation_group_iterator_larger() {
+        let generators = vec![
+            Permutation::parse_permutation_from_cycle("(1,2)", 5),
+            Permutation::parse_permutation_from_cycle("(2,3)", 5),
+            Permutation::parse_permutation_from_cycle("(3,4)", 5),
+            Permutation::parse_permutation_from_cycle("(4,5)", 5),
+        ];
+        let mut iterator = DepthLimitedPermutationGroupIterator::new(&generators, 100);
+        assert_eq!(
+            iterator.next().unwrap(),
+            (Permutation::new(vec![2, 1, 3, 4, 5]), vec![0])
+        );
+        assert_eq!(
+            iterator.next().unwrap(),
+            (Permutation::new(vec![1, 3, 2, 4, 5]), vec![1])
+        );
+        assert_eq!(
+            iterator.next().unwrap(),
+            (Permutation::new(vec![1, 2, 4, 3, 5]), vec![2])
+        );
+        let mut counter = 3;
+        let mut last_perm = Permutation::new(vec![1, 2, 3, 4, 5]);
+        let mut last_path = vec![0, 0];
+        while let Some((perm, path)) = iterator.next() {
+            assert_path_equals_permutation(&path, &perm, &generators);
+            last_perm = perm;
+            last_path = path;
+            counter += 1;
+        }
+
+        assert_eq!(last_perm, Permutation::new(vec![5, 4, 3, 2, 1]));
+        assert_eq!(last_path, vec![0, 1, 0, 2, 1, 0, 3, 2, 1, 0]);
+        // symmetric group of 5 elements has 120 elements
+        assert_eq!(counter, 120);
+        assert_eq!(iterator.next(), None);
     }
 }
