@@ -3,6 +3,7 @@ use santa_solver_lib::kalka_teicher_tsaban as kalka;
 use santa_solver_lib::puzzle;
 use santa_solver_lib::puzzle::PuzzleType;
 use std::collections::HashMap;
+use std::process::exit;
 
 fn main() {
     env_logger::init();
@@ -22,7 +23,7 @@ fn main() {
     let max_depth = if args.len() > 3 {
         args[3].parse().unwrap()
     } else {
-        12
+        10001
     };
 
     // Load the puzzles
@@ -31,89 +32,72 @@ fn main() {
 
     // Generate transpositions for each puzzle type
     for (puzzle_type, moves) in puzzles_info.iter() {
-        // Skip Cubes
-        if let PuzzleType::CUBE(n) = puzzle_type {
+        // Skip cube puzzles
+        if let PuzzleType::CUBE(_) = puzzle_type {
             continue;
         }
-        // Skip Globes with n > 19
-        if let PuzzleType::GLOBE(n, m) = puzzle_type {
-            if *n > 19 || *m > 19 {
-                continue;
-            }
-        }
+
         let mut gen_to_str = Vec::new();
         let mut gen_to_idx = HashMap::new();
 
         for m in moves {
             let idx = gen_to_idx.len();
             gen_to_idx.insert(m.permutation.clone(), idx);
-            gen_to_str.push((m.name.clone()));
+            gen_to_str.push(m.name.clone());
         }
         let n = moves[0].permutation.len();
-        info!("Generating transpositions for puzzle type {:?}", puzzle_type);
-        let mut mu = kalka::find_c_cycle(&gen_to_idx, 2, n);  // TODO: If successful, try to find shorter paths
-        if mu.is_none() {
-            warn!("Failed to find 2-cycle for puzzle type {:?}", puzzle_type);
+        debug!("Generating c-cycles for puzzle type {:?}", puzzle_type);
+        let c_cycles = vec![2_usize, 3, 4, 5];
+        let mus = kalka::find_c_cycles(&gen_to_idx, &c_cycles, n, max_depth);  // TODO: If successful, try to find shorter paths
+        if mus.is_none() {
+            warn!("Failed to find c-cycles for puzzle type {:?}", puzzle_type);
         } else {
-            let (mu_path, mu) = mu.unwrap();
-            debug!("Found 2-cycle for puzzle type {:?}: {}", puzzle_type, mu_path.to_string(&gen_to_str));
+            let mus = mus.unwrap();
+            for (c, (mu_path, mu)) in mus.iter() {
+                debug!("Found {}-cycles for puzzle type {:?}", c, puzzle_type);
+                let cycles = kalka::generate_cycles(&gen_to_idx, &mu, &mu_path, 100000);
+                info!("Generated {} {}-cycles for puzzle type {:?}", cycles.len(), c, puzzle_type);
 
-            let transpositions = kalka::generate_transpositions(&gen_to_idx, &mu, &mu_path, 100000);
-            debug!("Generated {} transpositions for puzzle type {:?}", transpositions.len(), puzzle_type);
-
-            // Write the transpositions to a new file
-            let transpositions_path = format!("{}/{}_2c.csv", cycles_path, puzzle_type);
-            // Create a new file if it doesn't exist
-            debug!("Creating file {}", transpositions_path);
-            if !std::path::Path::new(&transpositions_path).exists() {
-                std::fs::File::create(&transpositions_path).expect("Failed to create file");
-            } else {
-                // TODO: Check for each transposition if it already exists in the file and if the path is shorter
+                // Write the transpositions to a new file
+                let cycles_file_path = format!("{}/{}_{}c.csv", cycles_path, puzzle_type, c);
+                // Create a new file if it doesn't exist
+                debug!("Creating file {}", cycles_file_path);
+                if !std::path::Path::new(&cycles_file_path).exists() {
+                    std::fs::File::create(&cycles_file_path).expect("Failed to create file");
+                } else {
+                    // TODO: Check for each cycle if it already exists in the file and if the path is shorter
+                }
+                let mut writer = csv::Writer::from_path(cycles_file_path).unwrap();
+                writer
+                    .write_record(&["permutation", "path", "length"])
+                    .unwrap();
+                // Write all cycles to the file
+                for (perm, path) in cycles {
+                    let path_str =  path.to_string(&gen_to_str);
+                    let length = path_str.split('.').count();
+                    writer.write_record(&[&perm.to_string(), &path_str, &length.to_string()]).unwrap();  // TODO: Find a nicer way to write the permutation
+                }
+                writer.flush().unwrap();
             }
-            let mut writer = csv::Writer::from_path(transpositions_path).unwrap();
-            writer
-                .write_record(&["permutation", "path", "length"])
-                .unwrap();
-            // Write all transpositions to the file
-            for (perm, path) in transpositions {
-                let path_str =  path.to_string(&&gen_to_str);
-                let length = path_str.split('.').count();
-                writer.write_record(&[&perm.to_string(), &path_str, &length.to_string()]).unwrap();  // TODO: Find a nicer way to write the permutation
-            }
-            writer.flush().unwrap();
         }
-        // Try to find a 3-cycle
-        mu = kalka::find_c_cycle(&gen_to_idx, 3, n);
-        if mu.is_none() {
-            warn!("Failed to find 3-cycle for puzzle type {:?}", puzzle_type);
-            continue;
-        } else {
-            let (mu_path, mu) = mu.unwrap();
-            debug!("Found 3-cycle for puzzle type {:?}: {}", puzzle_type, mu_path.to_string(&gen_to_str));
+    }
+}
 
-            let transpositions = kalka::generate_transpositions(&gen_to_idx, &mu, &mu_path, 100000);
-            debug!("Generated {} permutations for puzzle type {:?}", transpositions.len(), puzzle_type);
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use santa_solver_lib::permutation::Permutation;
 
-            // Write the transpositions to a new file
-            let transpositions_path = format!("{}/{}_3c.csv", cycles_path, puzzle_type);
-            // Create a new file if it doesn't exist
-            debug!("Creating file {}", transpositions_path);
-            if !std::path::Path::new(&transpositions_path).exists() {
-                std::fs::File::create(&transpositions_path).expect("Failed to create file");
-            } else {
-                // TODO: Check for each transposition if it already exists in the file and if the path is shorter
-            }
-            let mut writer = csv::Writer::from_path(transpositions_path).unwrap();
-            writer
-                .write_record(&["permutation", "path", "length"])
-                .unwrap();
-            // Write all transpositions to the file
-            for (perm, path) in transpositions {
-                let path_str =  path.to_string(&&gen_to_str);
-                let length = path_str.split('.').count();
-                writer.write_record(&[&perm.to_string(), &path_str, &length.to_string()]).unwrap();
-            }
-            writer.flush().unwrap();
+    #[test]
+    fn test_cycle_manually() {
+        let cycle = "f7.-f4.-f4.f9.-f3.f3.-f4.f9.-f3.f3.-f4.f7";
+        // Load the moves
+        let allowed_moves = puzzle::load_puzzle_info("./../../data/puzzle_info.csv").unwrap().get(&PuzzleType::GLOBE(2, 6)).unwrap().clone();
+        // Apply the moves to the identity
+        let mut perm = Permutation::identity(36);
+        for m in cycle.split(".") {
+            perm = allowed_moves.iter().find(|x| x.name == m).unwrap().permutation.compose(&perm);
         }
+        println!("Perm: {}", perm);
     }
 }

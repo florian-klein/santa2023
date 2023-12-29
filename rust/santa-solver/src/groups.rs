@@ -47,8 +47,8 @@ impl<'a> Iterator for PermutationGroupIterator<'a> {
                 // iterate over gen_to_str keys
                 for generator in self.gen_to_str.keys() {
                     let new_element = generator.compose(&element_perm);
-                    let generator_name = self.gen_to_str.get(generator).unwrap();
                     if !self.visited.contains(&new_element) {
+                        let generator_name = self.gen_to_str.get(generator).unwrap();
                         let mut new_path = element_path.clone();
                         new_path.push(*generator_name);
                         self.frontier.push_back((new_path, new_element));
@@ -132,6 +132,61 @@ impl<'a> Iterator for DepthLimitedPermutationGroupIterator<'a> {
             self.current_depth = path.len();
         }
         return Some((element_perm, path));
+    }
+}
+
+#[cfg(test)]
+mod permutation_group_iterator_tests {
+    use super::*;
+    use crate::permutation::Permutation;
+
+    #[test]
+    fn test_permutation_group_iterator() {
+        let generators = vec![
+            Permutation::parse_permutation_from_cycle("(1,2)", 3),
+            Permutation::parse_permutation_from_cycle("(2,3)", 3),
+        ];
+        let mut gen_to_index = HashMap::new();
+        gen_to_index.insert(generators[0].clone(), 0);
+        gen_to_index.insert(generators[1].clone(), 1);
+        let iterator = PermutationGroupIterator::new(&gen_to_index);
+        for (path, perm) in iterator {
+            println!("{:?} -> {}", path, perm);
+        }
+    }
+
+    #[test]
+    fn test_permutation_group_iterator_larger() {
+        let generators = vec![
+            Permutation::parse_permutation_from_cycle("(1,2)", 3),
+            Permutation::parse_permutation_from_cycle("(2,3)", 3),
+        ];
+        let mut iterator = DepthLimitedPermutationGroupIterator::new(&generators, 10);
+        assert_eq!(
+            iterator.next().unwrap(),
+            (Permutation::new(vec![2, 1, 3]), vec![0])
+        );
+        assert_eq!(
+            iterator.next().unwrap(),
+            (Permutation::new(vec![1, 3, 2]), vec![1])
+        );
+        assert_eq!(
+            iterator.next().unwrap(),
+            (Permutation::new(vec![1, 2, 3]), vec![0, 0])
+        );
+        assert_eq!(
+            iterator.next().unwrap(),
+            (Permutation::new(vec![3, 1, 2]), vec![0, 1])
+        );
+        assert_eq!(
+            iterator.next().unwrap(),
+            (Permutation::new(vec![2, 3, 1]), vec![1, 0])
+        );
+        assert_eq!(
+            iterator.next().unwrap(),
+            (Permutation::new(vec![3, 2, 1]), vec![0, 1, 0])
+        );
+        assert_eq!(iterator.next(), None);
     }
 }
 

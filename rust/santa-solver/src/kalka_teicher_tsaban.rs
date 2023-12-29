@@ -48,7 +48,7 @@ pub fn find_c_cycle(
         let mut tau_pow = Permutation::identity(tau.len());
         'inner: for m in 1..=n {
             // Check whether tau.pow(m) is a c-cycle
-            tau_pow = tau_pow.compose(&tau);
+            tau_pow = tau_pow.compose(&tau);  // TODO: should be the other way around?
             if let Some(tau_cycles) = tau_pow.cycle_decomposition_max(c) {
                 let mut found = false;
                 for cycle in tau_cycles {
@@ -78,7 +78,66 @@ pub fn find_c_cycle(
     None
 }
 
-pub fn generate_transpositions(
+pub fn find_c_cycles(
+    gen_to_str: &HashMap<Permutation, PermutationIndex>,
+    cs: &Vec<usize>,
+    n: usize,
+    depth: usize,
+) -> Option<HashMap<usize, (PermutationPath, Permutation)>> {
+    let generator = PermutationGroupIterator::new(&gen_to_str);
+    let max_c = *cs.iter().max().unwrap();
+    let mut mus : HashMap<usize, (PermutationPath, Permutation)> = HashMap::new();
+    let mut lengths : HashMap<usize, usize> = HashMap::new();
+    let mut i = 0;
+    for (mut tau_path, tau) in generator {
+        i += 1;
+        if i % 10000 == 0 {
+            debug!("Generators tried: {:?}", i);
+        }
+        let mut tau_pow = Permutation::identity(tau.len());
+        'inner: for m in 1..=n {
+            // Check whether tau.pow(m) is a c-cycle
+            tau_pow = tau.compose(&tau_pow);
+            if let Some(tau_cycles) = tau_pow.cycle_decomposition_max(max_c) {
+                let mut found = false;
+                let mut found_c = 0;
+                for cycle in tau_cycles {
+                    if cycle.len() > 1 {
+                        if cs.contains(&cycle.len()) {
+                            if found {
+                                continue 'inner;
+                            } else {
+                                found = true;
+                                found_c = cycle.len();
+                            }
+                        } else {
+                            continue 'inner;
+                        }
+                    }
+                }
+                if found && (!lengths.contains_key(&found_c) || (lengths.get(&found_c).unwrap() > &(tau_path.arr.len() * m))) {
+                    tau_path.pow(m);
+                    debug!("Found new {}-cycle of length {}", found_c, tau_path.arr.len());
+                    lengths.insert(found_c, tau_path.arr.len());
+                    mus.insert(found_c, (tau_path.clone(), tau_pow.clone()));
+                }
+            }
+            if i >= depth {
+                if mus.len() > 0 {
+                    return Some(mus)
+                }
+                warn!("Aborting after trying {} generators", i);
+                return None
+            }
+        }
+    }
+    if mus.len() > 0 {
+        return Some(mus)
+    }
+    None
+}
+
+pub fn generate_cycles(
     gen_to_str: &HashMap<Permutation, PermutationIndex>,
     mu: &Permutation,
     mu_path: &PermutationPath,
@@ -270,7 +329,7 @@ mod tests {
     fn test_generate_transposition() {
         let gen_to_index = TestingUtils::get_generator_to_perm_index_map_s_n(5);
         let (mu_path, mu) = find_c_cycle(&gen_to_index, 2, 5).unwrap();
-        let result = generate_transpositions(&gen_to_index, &mu, &mu_path, 10);
+        let result = generate_cycles(&gen_to_index, &mu, &mu_path, 10);
         for (perm, path) in result {
             TestingUtils::assert_index_path_equals_permutation_using_hashmap(
                 &path.arr,
