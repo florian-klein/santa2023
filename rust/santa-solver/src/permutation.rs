@@ -4,10 +4,19 @@ use crate::groups::DepthLimitedPermutationGroupIterator;
 use log::debug;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
+use std::process::exit;
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
 pub struct Permutation {
     pub p: Vec<usize>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CoolPermutationInfo {
+    pub permutation: Permutation,
+    pub cycles: Vec<Vec<usize>>,
+    pub reduced_cycles: Vec<Vec<usize>>, //2-cycles should always be low-high
+    pub signum: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -187,6 +196,28 @@ impl Permutation {
         Some(cycles)
     }
 
+    // for k-cycles, remove the 1-cycles
+    pub fn compressed_cyclic(&self) -> Option<Vec<usize>> {
+        let mut visited = vec![false; self.len()];
+        for i in 0..self.len() {
+            if !visited[i] {
+                let mut cycle = Vec::new();
+                let mut cur_cycle_len = 0;
+                let mut j = i;
+                while !visited[j] {
+                    visited[j] = true;
+                    cycle.push(j + 1);
+                    cur_cycle_len += 1;
+                    j = self.p[j] - 1;
+                }
+                if cur_cycle_len > 1 {
+                    return Some(cycle);
+                }
+            }
+        }
+        None
+    }
+
     pub fn compute_info(&self) -> PermutationInfo {
         let mut cycles = Vec::with_capacity(64);
         let cycle_len = self.len() / 2;
@@ -278,6 +309,23 @@ impl Display for PermutationInfo<'_> {
     }
 }
 
+impl Display for CoolPermutationInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let cycle_vec_reduced = self
+            .cycles
+            .iter()
+            .filter(|x| x.len() != 1)
+            .collect::<Vec<_>>();
+        let _ = write!(f, "{:?}", cycle_vec_reduced);
+        if self.signum {
+            write!(f, " (even)")?;
+        } else {
+            write!(f, " (odd)")?;
+        }
+        Ok(())
+    }
+}
+
 impl CompressedPermutation {
     pub fn new(m: HashMap<usize, usize>) -> CompressedPermutation {
         CompressedPermutation { m }
@@ -337,6 +385,114 @@ pub fn get_permutation<T: PartialEq>(source: &Vec<T>, target: &Vec<T>) -> Permut
     Permutation::new(p)
 }
 
+//[2-cycle, 3-cycle, ...]
+pub fn decompose_bottom_up(
+    p: &CoolPermutationInfo,
+    c_cycles: &Vec<Vec<CoolPermutationInfo>>,
+    orig_len: usize,
+) -> Option<Vec<Permutation>> {
+    info!("decompose_bootom_up {}", p);
+    let mut targets = p
+        .cycles
+        .iter()
+        .filter(|c| c.len() > 1)
+        .map(|c| {
+            (
+                Permutation::from_cycles_fixed_per_size(&vec![c.clone()], p.permutation.len()),
+                c.clone(),
+            )
+        })
+        .collect::<Vec<_>>();
+    debug!("We have decomposed our target in following cycles:",);
+    for cycle in &targets {
+        debug!("{:?}", cycle.1);
+    }
+
+    let mut paths = Vec::new();
+
+    for (idx, cycle) in targets.iter().enumerate() {
+        debug!("We are looking for cycle {:?}", cycle.1);
+        let cycle_len = cycle.1.len();
+        if cycle_len == 1 {
+            continue;
+        } else if cycle_len == 2 {
+            //has to be in our given c_cycles otherwise return false
+            if let Some(c) = c_cycles[0].iter().find(|x| x.reduced_cycles[0] == cycle.1) {
+                info!("Found 2-cycle to fit in {}", c);
+                paths.push(c.permutation.clone()); //TODO not right
+            } else {
+                return None;
+            }
+        } else {
+            if cycle_len == 3 {
+                //could be in our give 3-cycles
+                if let Some(c) = c_cycles[1].iter().find(|x| x.reduced_cycles[0] == cycle.1) {
+                    info!("Found 3-cycle {}", c);
+                    paths.push(c.permutation.clone());
+                }
+            } else {
+                //try to build it
+                if let Some(subpath) =
+                    decompose_from_c_cycles(&cycle.0, &cycle.1, c_cycles, orig_len)
+                {
+                    paths.extend(subpath);
+                } else {
+                    return None;
+                }
+            }
+        }
+    }
+
+    return Some(paths);
+}
+//cycle we want to decompose
+pub fn decompose_from_c_cycles(
+    p_perm: &Permutation,
+    p_cyc: &Vec<usize>,
+    c_cycles: &Vec<Vec<CoolPermutationInfo>>,
+    orig_len: usize,
+) -> Option<Vec<Permutation>> {
+    info!("decompose_from_c_cycles {:?}", p_cyc);
+    //start with big cycles first
+    for k_cycles in c_cycles.iter().rev() {
+        debug!(
+            "search for subcycles of len {}, candidates {}",
+            k_cycles[0].reduced_cycles[0].len(),
+            k_cycles.len()
+        );
+        'outer: for k_cycle in k_cycles {
+            //first check if this k_cycle lies in our permutation
+            assert_eq!(k_cycle.reduced_cycles.len(), 1);
+            for i in &k_cycle.reduced_cycles[0] {
+                if !p_cyc.contains(i) {
+                    //debug!("k_cycle {:?} does not lie in {:?}", k_cycle, p_cyc);
+                    continue 'outer;
+                }
+            }
+            info!(
+                "k_cycle {:?} lies in {:?}",
+                k_cycle.reduced_cycles[0], p_cyc
+            );
+            //we want a * k_cycle = p
+            // => calculate a = p * k_cycle^-1
+            let a = k_cycle.permutation.inverse().compose(p_perm);
+            let a_i = CoolPermutationInfo::new(&k_cycle.permutation.inverse().compose(p_perm));
+            if a_i.reduced_cycles.len() == 1 && a_i.reduced_cycles[0].len() >= p_cyc.len() {
+                //this didn't split up the problem
+                continue 'outer;
+            }
+            info!("We want to find a decomposition for {}",a_i );
+
+            if let Some(mut p) = decompose_bottom_up(&a_i, c_cycles, orig_len) {
+                p.push(a);
+                return Some(p);
+            }
+        }
+    }
+    info!("No decomposition found for {:?}", p_cyc);
+    None
+}
+
 pub fn decompose(
     p: &PermutationInfo,
     t: &Vec<Permutation>,
@@ -345,24 +501,88 @@ pub fn decompose(
     // Attempts to write p as a product of permutations in t
     // Perform a BFS on the Cayley graph of the group generated by t
     // Decompose every cycle of p individually  // TODO: Check whether this is necessary
+    // Attempts to write p as a product of permutations in t
+    // Perform a BFS on the Cayley graph of the group generated by t
+    // Decompose every cycle of p individually  // TODO: Check whether this is necessary
     let mut result = Vec::new();
-    'outer: for cycle in &p.cycles {
-        info!("Decomposing cycle of len {}", cycle.len());
-        if cycle.len() == 1 {
-            continue;
+    let mut targets = p
+        .cycles
+        .iter()
+        .filter(|c| c.len() > 1)
+        .map(|c| Permutation::from_cycles_fixed_per_size(&vec![c.clone()], p.permutation.len()))
+        .collect::<Vec<_>>();
+    debug!("We have decomposed our target in following cycles:",);
+    for cycle in &targets {
+        debug!("{}", cycle.compute_info());
+    }
+    let generator = DepthLimitedPermutationGroupIterator::new(t, depth);
+    let mut counter = 0;
+    for (p, path) in generator {
+        if counter % 200000 == 0 {
+            debug!(
+                "We have searched through {:?} elements in the generated cayley graph",
+                counter
+            );
+            debug!(
+                "For example, the current element is (in cyclic form): {}",
+                p.compute_info()
+            );
         }
-        let generator = DepthLimitedPermutationGroupIterator::new(t, depth);
-        for (p, path) in generator {
-            // TODO: improve efficiency: idea: cycle is pretty small, so we just check
-            if p == Permutation::from_cycles_fixed_per_size(&vec![cycle.clone()], p.len()) {
-                // Found a decomposition
-                for i in path {
-                    result.push(t[i].clone());
+        // todo; why is targets not a hashset?
+        if targets.contains(&p) {
+            debug!(
+                "Hit! For cycle {:?} in target decomp, we found this path: {:?}",
+                p, path
+            );
+            // Found a decomposition
+            for i in path {
+                result.push(t[i].clone());
+            }
+            targets.retain(|x| x != &p);
+        }
+        counter += 1;
+    }
+    if targets.is_empty() {
+        Some(result)
+    } else {
+        None // TODO: Maybe return the partial decomposition?
+    }
+}
+
+impl CoolPermutationInfo {
+    pub fn new(perm: &Permutation) -> Self {
+        let mut cycles = Vec::with_capacity(64);
+        let mut reduced_cycles = Vec::with_capacity(64);
+        let cycle_len = perm.len() / 2;
+        let mut visited = vec![false; perm.len()];
+        let mut even_cycles = 0;
+        for i in 0..perm.len() {
+            if !visited[i] {
+                let mut cycle = Vec::with_capacity(cycle_len);
+                let mut j = i;
+                while !visited[j] {
+                    visited[j] = true;
+                    cycle.push(j + 1);
+                    j = perm.p[j] - 1;
                 }
-                continue 'outer;
+                if cycle.len() % 2 == 0 {
+                    even_cycles += 1;
+                }
+                if cycle.len() > 1 {
+                    reduced_cycles.push(cycle.clone())
+                }
+                cycles.push(cycle);
             }
         }
-        return None;
+        // The permutation is even iff the number of even cycles is even
+        let signum = even_cycles % 2 == 0;
+
+        Self {
+            permutation: perm.clone(),
+            reduced_cycles: reduced_cycles,
+            cycles: cycles,
+            signum: signum,
+        }
     }
 }
 
@@ -495,7 +715,7 @@ mod permutation_tests {
     fn test_display_permutation_info() {
         let p = Permutation::new(vec![2, 6, 3, 5, 4, 1]);
         let info = p.compute_info();
-        assert_eq!(format!("{}", info), "[[1, 2, 6], [3], [4, 5]] (odd)");
+        assert_eq!(format!("{}", info), "[[1, 2, 6], [4, 5]] (odd)");
     }
 
     #[test]

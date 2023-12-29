@@ -1,8 +1,9 @@
 use log::{debug, info};
-use santa_solver_lib::permutation::Permutation;
+use santa_solver_lib::permutation::{CoolPermutationInfo, Permutation};
 use santa_solver_lib::{permutation, puzzle};
 use std::collections::HashMap;
 use std::path::Path;
+use std::process::exit;
 
 fn main() {
     env_logger::init();
@@ -134,8 +135,28 @@ fn main() {
             .keys()
             .map(|x| x.clone())
             .collect();
+
+        let mut c_cycles = vec![permutations
+            .iter()
+            .map(|x| CoolPermutationInfo::new(&x))
+            .collect()];
+        c_cycles.push(
+            three_cycles[&puzzle.puzzle_type]
+                .keys()
+                .map(|x| CoolPermutationInfo::new(x))
+                .collect(),
+        );
+
         permutations.extend(three_cycles[&puzzle.puzzle_type].keys().map(|x| x.clone()));
         debug!("Finished loading two and three cycles for this problem (todo: add more cycles). Starting decomposing...");
+
+        let a = permutation::decompose_bottom_up(&CoolPermutationInfo::new(&target), &c_cycles, target.p.len());
+        println!(
+            "Finished puzzle {} of type {:?} with {:?}",
+            puzzle.id, puzzle.puzzle_type, a
+        );
+
+        continue;
         let solution = permutation::decompose(&target.compute_info(), &permutations, 12);
         if solution.is_none() {
             debug!(
