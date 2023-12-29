@@ -2,6 +2,8 @@
 import pandas as pd
 from dash import Dash, html, dcc
 import argparse
+import plotly.express as px
+import dash_bootstrap_components as dbc
 
 
 if __name__ == "__main__":
@@ -25,56 +27,62 @@ if __name__ == "__main__":
     solution = solution.merge(puzzle_info, on="puzzle_type")
     solution = solution.sort_values(by="score", ascending=False)
 
-    # Create the app
-    app = Dash(__name__)
+    # Create the app with DARKLY theme for a dark gray layout
+    app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
     app.title = "Santaviz 2023"
 
-    # We want a nice plot for the score distribution of the solutions and a ranking of the puzzles by score (with the puzzle type as hue)
-    # Then we want a plot for the score distribution of the puzzle types
-
     # Create the layout
-    app.layout = html.Div(
+    app.layout = dbc.Container(
         [
-            html.H1("Santaviz 2023"),
-            html.H2("Solution scores"),
-            dcc.Graph(
-                figure={
-                    "data": [
-                        {
-                            "x": solution["id"],
-                            "y": solution["score"],
-                            "type": "bar",
-                            "text": solution["puzzle_type"],
-                            "name": "Score per puzzle",
-                            "marker": {"color": solution["puzzle_type"]},
-                            "textposition": "auto",
-                        },
-                    ],
-                    "layout": {
-                        "title": "Score per puzzle",
-                        "xaxis": {"title": "Puzzle ID"},
-                        "yaxis": {"title": "Score"},
-                    },
-                }
+            html.H1("Santaviz 2023", style={'color': 'white'}),
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            dcc.Graph(
+                                figure=px.bar(
+                                    solution,
+                                    x="id",
+                                    y="score",
+                                    hover_data=["puzzle_type"],
+                                    labels={"id": "Puzzle ID", "score": "Score"},
+                                    title="Score per puzzle",
+                                ).update_layout(
+                                    {
+                                        'plot_bgcolor': 'rgba(50, 50, 50, 1)',
+                                        'paper_bgcolor': 'rgba(50, 50, 50, 1)',
+                                        'font': {'color': 'white'}
+                                    }
+                                )
+                            ),
+                        ],
+                        md=6,
+                    ),
+                    dbc.Col(
+                        [
+                            dcc.Graph(
+                                figure=px.bar(
+                                    solution,
+                                    x=solution["puzzle_type"].unique(),
+                                    y=solution.groupby("puzzle_type")["score"].sum().sort_values(ascending=False),
+                                    labels={"x": "Puzzle type", "y": "Score"},
+                                    title="Score per puzzle type",
+                                ).update_layout(
+                                    {
+                                        'plot_bgcolor': 'rgba(50, 50, 50, 1)',
+                                        'paper_bgcolor': 'rgba(50, 50, 50, 1)',
+                                        'font': {'color': 'white'}
+                                    }
+                                )
+                            ),
+                        ],
+                        md=6,
+                    ),
+                ],
+                align='center'
             ),
-            dcc.Graph(
-                figure={
-                    "data": [
-                        {
-                            "y": solution.groupby("puzzle_type")["score"].sum().sort_values(ascending=False),
-                            "x": solution["puzzle_type"].unique(),
-                            "type": "bar",
-                            "name": "Score per puzzle type",
-                        },
-                    ],
-                    "layout": {
-                        "title": "Score per puzzle type",
-                        "xaxis": {"title": "Puzzle type"},
-                        "yaxis": {"title": "Score"},
-                    },
-                }
-            ),
-        ]
+        ],
+        fluid=True,
     )
 
     # Run the app
