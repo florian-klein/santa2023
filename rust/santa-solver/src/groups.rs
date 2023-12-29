@@ -14,7 +14,8 @@ pub struct PermutationGroupIterator<'a> {
 
 pub struct DepthLimitedPermutationGroupIterator<'a> {
     frontier: VecDeque<(Permutation, Vec<usize>)>,
-    visited: HashSet<Permutation>,
+    visited: bloomfilter::Bloom<Permutation>,
+    items_inserted: usize,
     queue: VecDeque<(Permutation, Vec<usize>)>,
     generators: &'a Vec<Permutation>,
     current_depth: usize,
@@ -82,10 +83,11 @@ impl<'a> DepthLimitedPermutationGroupIterator<'a> {
 
         Self {
             frontier: VecDeque::new(),
-            visited: HashSet::new(),
+            visited: bloomfilter::Bloom::new_for_fp_rate(1_000_000_000, 0.0000001), //TODO adjust
             queue,
             generators,
             current_depth: 0,
+            items_inserted: 0,
             max_depth,
         }
     }
@@ -105,7 +107,7 @@ impl<'a> Iterator for DepthLimitedPermutationGroupIterator<'a> {
                 // Enumerate generators
                 for (i, generator) in self.generators.iter().enumerate() {
                     let new_element = generator.compose(&element_perm);
-                    if !self.visited.contains(&new_element) {
+                    if !self.visited.check(&new_element) {
                         let mut new_path = element_path.clone();
                         new_path.push(i);
                         self.frontier.push_back((new_element, new_path));
@@ -126,7 +128,14 @@ impl<'a> Iterator for DepthLimitedPermutationGroupIterator<'a> {
 
         let (element_perm, path) = result.unwrap();
 
-        self.visited.insert(element_perm.clone());
+        self.visited.set(&element_perm);
+        self.items_inserted += 1;
+        if self.items_inserted % 100000 == 0 {
+            info!(
+                "Visited {} elements in DepthLimitedPermutationGroupIterator",
+                self.items_inserted
+            );
+        }
         self.queue.push_back((element_perm.clone(), path.clone()));
         if path.len() > self.current_depth {
             self.current_depth = path.len();
