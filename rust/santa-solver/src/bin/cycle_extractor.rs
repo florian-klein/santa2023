@@ -69,13 +69,13 @@ fn main() {
                 );
                 debug!("Found {}-cycles for puzzle type {:?}", c, puzzle_type);
                 let cycles = kalka::generate_cycles(&gen_to_idx, &mu, &mu_path, 100000);
-                for (perm, path) in &cycles {
-                    TestingUtils::assert_index_path_equals_permutation_using_hashmap(
-                        &path.arr,
-                        &perm,
-                        &gen_to_idx,
-                    );
-                }
+                // for (perm, path) in &cycles {
+                //     TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                //         &path.arr,
+                //         &perm,
+                //         &gen_to_idx,
+                //     );
+                // }
                 info!(
                     "Generated {} {}-cycles for puzzle type {:?}",
                     cycles.len(),

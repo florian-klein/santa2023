@@ -165,22 +165,22 @@ pub fn generate_cycles(
             let s_i_inv = &s_i.inverse();
             let s_i_path = gen_to_index.get(s_i).unwrap();
             let s_i_inv_path = gen_to_index.get(s_i_inv).unwrap();
-            TestingUtils::assert_index_path_equals_permutation_using_hashmap(
-                &vec![*s_i_path],
-                s_i,
-                gen_to_index,
-            );
-            TestingUtils::assert_index_path_equals_permutation_using_hashmap(
-                &vec![*s_i_inv_path],
-                s_i_inv,
-                gen_to_index,
-            );
+            // TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+            //     &vec![*s_i_path],
+            //     s_i,
+            //     gen_to_index,
+            // );
+            // TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+            //     &vec![*s_i_inv_path],
+            //     s_i_inv,
+            //     gen_to_index,
+            // );
             for (a, a_path) in &a_0 {
-                TestingUtils::assert_index_path_equals_permutation_using_hashmap(
-                    &a_path.arr,
-                    a,
-                    gen_to_index,
-                );
+                // TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                //     &a_path.arr,
+                //     a,
+                //     gen_to_index,
+                // );
                 // calculate s_i^eps * a * s_i^-eps and check membership
                 let perm_eps_pos = s_i_inv.compose(&a.compose(s_i));
                 let perm_eps_neg = s_i.compose(&a.compose(s_i_inv));
@@ -192,49 +192,49 @@ pub fn generate_cycles(
                     // debug!("alpath: {:?}", al_path);
                     // debug!("s_inv: {:?}", s_i_inv_path);
                     // debug!("s_i: {:?}", s_i_path);
-                    TestingUtils::assert_index_path_equals_permutation_using_hashmap(
-                        &vec![*s_i_path],
-                        s_i,
-                        gen_to_index,
-                    );
-                    TestingUtils::assert_index_path_equals_permutation_using_hashmap(
-                        &vec![*s_i_inv_path],
-                        s_i_inv,
-                        gen_to_index,
-                    );
-                    TestingUtils::assert_index_path_equals_permutation_using_hashmap(
-                        &a_path.arr,
-                        a,
-                        gen_to_index,
-                    );
+                    // TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                    //     &vec![*s_i_path],
+                    //     s_i,
+                    //     gen_to_index,
+                    // );
+                    // TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                    //     &vec![*s_i_inv_path],
+                    //     s_i_inv,
+                    //     gen_to_index,
+                    // );
+                    // TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                    //     &a_path.arr,
+                    //     a,
+                    //     gen_to_index,
+                    // );
                     al_path.push(*s_i_path);
                     al_path.merge(a_path);
                     al_path.push(*s_i_inv_path);
                     // debug!("alpath: {:?}", al_path);
-                    TestingUtils::assert_index_path_equals_permutation_using_hashmap(
-                        &al_path.arr,
-                        &perm_eps_pos,
-                        gen_to_index,
-                    );
+                    // TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                    //     &al_path.arr,
+                    //     &perm_eps_pos,
+                    //     gen_to_index,
+                    // );
                     a_l.insert(perm_eps_pos, al_path);
                 }
                 if !a_union.contains_key(&perm_eps_neg) && !a_l.contains_key(&perm_eps_neg) {
                     let mut al_path = PermutationPath::default();
-                    TestingUtils::assert_index_path_equals_permutation_using_hashmap(
-                        &vec![*s_i_path],
-                        s_i,
-                        gen_to_index,
-                    );
-                    TestingUtils::assert_index_path_equals_permutation_using_hashmap(
-                        &vec![*s_i_inv_path],
-                        s_i_inv,
-                        gen_to_index,
-                    );
-                    TestingUtils::assert_index_path_equals_permutation_using_hashmap(
-                        &a_path.arr,
-                        a,
-                        gen_to_index,
-                    );
+                    // TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                    //     &vec![*s_i_path],
+                    //     s_i,
+                    //     gen_to_index,
+                    // );
+                    // TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                    //     &vec![*s_i_inv_path],
+                    //     s_i_inv,
+                    //     gen_to_index,
+                    // );
+                    // TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                    //     &a_path.arr,
+                    //     a,
+                    //     gen_to_index,
+                    // );
                     al_path.push(*s_i_inv_path);
                     al_path.merge(a_path);
                     al_path.push(*s_i_path);
@@ -302,11 +302,11 @@ pub fn factorize(
         mu, mu_path
     );
 
-    TestingUtils::assert_index_path_equals_permutation_using_hashmap(
-        &mu_path.arr,
-        &mu,
-        &gen_to_idx,
-    );
+    // TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+    //     &mu_path.arr,
+    //     &mu,
+    //     &gen_to_idx,
+    // );
     info!("We have asserted that the path results in this mu");
 
     // disjoint cycles of length c

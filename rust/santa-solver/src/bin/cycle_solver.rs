@@ -96,7 +96,13 @@ fn main() {
     for puzzle in puzzles {
         let mut has_cycles = false;
         // Check whether the puzzle has only unique elements
-        if puzzle.initial_state.iter().collect::<std::collections::HashSet<_>>().len() != puzzle.initial_state.len() {
+        if puzzle
+            .initial_state
+            .iter()
+            .collect::<std::collections::HashSet<_>>()
+            .len()
+            != puzzle.initial_state.len()
+        {
             continue;
         }
         // Check whether we have any cycles for this puzzle type
@@ -111,6 +117,7 @@ fn main() {
             }
         }
         if !has_cycles {
+            debug!("For this problem with id {:?} and type {:?} we haven't found any circles, continue... TODO: Add > 3 cycles to check!!!!", puzzle.id, puzzle.puzzle_type);
             continue;
         }
         info!(
@@ -122,11 +129,13 @@ fn main() {
         );
         // Use permutation::decompose to find a solution
         let target = permutation::get_permutation(&puzzle.initial_state, &puzzle.goal_state);
+        debug!("We want to reach following target: {:?}", target);
         let mut permutations: Vec<Permutation> = two_cycles[&puzzle.puzzle_type]
             .keys()
             .map(|x| x.clone())
             .collect();
         permutations.extend(three_cycles[&puzzle.puzzle_type].keys().map(|x| x.clone()));
+        debug!("Finished loading two and three cycles for this problem (todo: add more cycles). Starting decomposing...");
         let solution = permutation::decompose(&target.compute_info(), &permutations, 12);
         if solution.is_none() {
             debug!(

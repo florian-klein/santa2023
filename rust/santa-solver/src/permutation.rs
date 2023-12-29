@@ -1,4 +1,5 @@
 use crate::groups::DepthLimitedPermutationGroupIterator;
+use log::debug;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
@@ -260,7 +261,12 @@ impl Display for Permutation {
 
 impl Display for PermutationInfo<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.cycles)?;
+        let cycle_vec_reduced = self
+            .cycles
+            .iter()
+            .filter(|x| x.len() != 1)
+            .collect::<Vec<_>>();
+        let _ = write!(f, "{:?}", cycle_vec_reduced);
         if self.signum {
             write!(f, " (even)")?;
         } else {
@@ -344,15 +350,36 @@ pub fn decompose(
         .filter(|c| c.len() > 1)
         .map(|c| Permutation::from_cycles_fixed_per_size(&vec![c.clone()], p.permutation.len()))
         .collect::<Vec<_>>();
+    debug!("We have decomposed our target in following cycles:",);
+    for cycle in &targets {
+        debug!("{}", cycle.compute_info());
+    }
     let generator = DepthLimitedPermutationGroupIterator::new(t, depth);
+    let mut counter = 0;
     for (p, path) in generator {
+        if counter % 200000 == 0 {
+            debug!(
+                "We have searched through {:?} elements in the generated cayley graph",
+                counter
+            );
+            debug!(
+                "For example, the current element is (in cyclic form): {}",
+                p.compute_info()
+            );
+        }
+        // todo; why is targets not a hashset?
         if targets.contains(&p) {
+            debug!(
+                "Hit! For cycle {:?} in target decomp, we found this path: {:?}",
+                p, path
+            );
             // Found a decomposition
             for i in path {
                 result.push(t[i].clone());
             }
             targets.retain(|x| x != &p);
         }
+        counter += 1;
     }
     if targets.is_empty() {
         Some(result)
