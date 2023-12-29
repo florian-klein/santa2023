@@ -17,7 +17,14 @@ struct PermAndWord {
     word: Vec<usize>,
 }
 
-struct GroupGens {}
+struct GroupGen {
+    name: String,
+    perm: Permutation,
+}
+
+struct GroupGens {
+    elements: Vec<GroupGen>,
+}
 
 struct TransTable {
     table: HashMap<(usize, usize), PermAndWord>,
@@ -27,6 +34,15 @@ impl TransTable {
     pub fn new() -> Self {
         let table: HashMap<(usize, usize), PermAndWord> = HashMap::new();
         TransTable { table }
+    }
+}
+
+impl PermAndWord {
+    pub fn identity(n: usize) -> Self {
+        PermAndWord {
+            perm: Permutation::identity(n),
+            word: Vec::new(),
+        }
     }
 }
 
@@ -57,8 +73,14 @@ impl MinkwitzTable {
 
     pub fn buildShortWordsSGS(gens: GroupGens, base: GroupBase, n: usize, s: usize, w: usize) {
         let mu_table = TransTable::new();
+        let permutation_size = gens.elements[0].perm.len();
         for i in 0..base.elements.len() {
-            // mu_table.insert((i, base.elements[i]),)
+            mu_table.insert((i, base.elements[i]), PermAndWord::identity(n));
         }
+        let mut max = n;
+        let mut limit = w;
+        let mut count = 0;
+        // let group_iterator = PermutationGroupIterator::new(gens);
+        // for (perm, word) in PermutationGroupIterator
     }
 }
