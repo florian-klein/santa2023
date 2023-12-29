@@ -145,7 +145,7 @@ pub fn find_c_cycles(
 }
 
 pub fn generate_cycles(
-    gen_to_str: &HashMap<Permutation, PermutationIndex>,
+    gen_to_index: &HashMap<Permutation, PermutationIndex>,
     mu: &Permutation,
     mu_path: &PermutationPath,
     n: usize,
@@ -154,7 +154,7 @@ pub fn generate_cycles(
     let mut a_l: HashMap<Permutation, PermutationPath> = HashMap::new(); // A_l, current iteration
     let mut a_union: HashMap<Permutation, PermutationPath> = HashMap::new(); // a_0 union A_1 union ... union A_l
     a_0.insert(mu.clone(), mu_path.clone());
-    let generators = &gen_to_str
+    let generators = &gen_to_index
         .keys()
         .map(|x| x.clone())
         .collect::<Vec<Permutation>>();
@@ -163,9 +163,24 @@ pub fn generate_cycles(
         for gen in generators {
             let s_i = gen;
             let s_i_inv = &s_i.inverse();
-            let s_i_path = gen_to_str.get(s_i).unwrap();
-            let s_i_inv_path = gen_to_str.get(s_i_inv).unwrap();
+            let s_i_path = gen_to_index.get(s_i).unwrap();
+            let s_i_inv_path = gen_to_index.get(s_i_inv).unwrap();
+            TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                &vec![*s_i_path],
+                s_i,
+                gen_to_index,
+            );
+            TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                &vec![*s_i_inv_path],
+                s_i_inv,
+                gen_to_index,
+            );
             for (a, a_path) in &a_0 {
+                TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                    &a_path.arr,
+                    a,
+                    gen_to_index,
+                );
                 // calculate s_i^eps * a * s_i^-eps and check membership
                 let perm_eps_pos = s_i_inv.compose(&a.compose(s_i));
                 let perm_eps_neg = s_i.compose(&a.compose(s_i_inv));
@@ -174,16 +189,60 @@ pub fn generate_cycles(
                 if !a_union.contains_key(&perm_eps_pos) && !a_l.contains_key(&perm_eps_pos) {
                     // Is the a_l check necessary?
                     let mut al_path = PermutationPath::default();
-                    al_path.push(*s_i_inv_path);
-                    al_path.merge(a_path);
+                    // debug!("alpath: {:?}", al_path);
+                    // debug!("s_inv: {:?}", s_i_inv_path);
+                    // debug!("s_i: {:?}", s_i_path);
+                    TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                        &vec![*s_i_path],
+                        s_i,
+                        gen_to_index,
+                    );
+                    TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                        &vec![*s_i_inv_path],
+                        s_i_inv,
+                        gen_to_index,
+                    );
+                    TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                        &a_path.arr,
+                        a,
+                        gen_to_index,
+                    );
                     al_path.push(*s_i_path);
+                    al_path.merge(a_path);
+                    al_path.push(*s_i_inv_path);
+                    // debug!("alpath: {:?}", al_path);
+                    TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                        &al_path.arr,
+                        &perm_eps_pos,
+                        gen_to_index,
+                    );
                     a_l.insert(perm_eps_pos, al_path);
                 }
                 if !a_union.contains_key(&perm_eps_neg) && !a_l.contains_key(&perm_eps_neg) {
                     let mut al_path = PermutationPath::default();
-                    al_path.push(*s_i_path);
-                    al_path.merge(a_path);
+                    TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                        &vec![*s_i_path],
+                        s_i,
+                        gen_to_index,
+                    );
+                    TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                        &vec![*s_i_inv_path],
+                        s_i_inv,
+                        gen_to_index,
+                    );
+                    TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                        &a_path.arr,
+                        a,
+                        gen_to_index,
+                    );
                     al_path.push(*s_i_inv_path);
+                    al_path.merge(a_path);
+                    al_path.push(*s_i_path);
+                    TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+                        &al_path.arr,
+                        &perm_eps_neg,
+                        gen_to_index,
+                    );
                     a_l.insert(perm_eps_neg, al_path);
                 }
             }
@@ -199,6 +258,13 @@ pub fn generate_cycles(
         std::mem::swap(&mut a_0, &mut a_l);
         if a_union.len() > n {
             info!("Aborting after finding {} elements", a_union.len());
+            // for (perm, path) in a_union.iter() {
+            //     TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+            //         &path.arr,
+            //         perm,
+            //         gen_to_index,
+            //     );
+            // }
             return a_union;
         }
     }

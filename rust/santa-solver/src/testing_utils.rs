@@ -1,5 +1,8 @@
 use crate::permutation::Permutation;
 use crate::permutation::PermutationIndex;
+use crate::puzzle;
+use crate::puzzle::PuzzleType;
+use log::debug;
 use std::collections::HashMap;
 pub struct TestingUtils {}
 
@@ -46,13 +49,8 @@ impl TestingUtils {
         // is in format gen1.gen2.-gen1.gen2
         let operations = op_str.split(".");
         for operation in operations {
-            if operation.starts_with("-") {
-                let operation = operation.trim_start_matches("-");
-                result = result.compose(&str_to_gen.get(operation).unwrap().inverse());
-            } else {
-                println!("operation: {}", operation);
-                result = result.compose(&str_to_gen.get(operation).unwrap());
-            }
+            let next_perm = &str_to_gen.get(operation).unwrap();
+            result = next_perm.compose(&result);
         }
         result
     }
@@ -115,6 +113,49 @@ impl TestingUtils {
             println!("perm: {:?}", perm);
         }
         assert!(result == *perm);
+    }
+
+    pub fn assert_perm_equals_op_string_for_puzzle_type(
+        perm: Permutation,
+        op_string: String,
+        puzzle_type: PuzzleType,
+    ) {
+        let allowed_moves = puzzle::load_puzzle_info("./../../data/puzzle_info.csv")
+            .unwrap()
+            .get(&puzzle_type)
+            .unwrap()
+            .clone();
+        let str_to_gen: HashMap<String, Permutation> = allowed_moves
+            .iter()
+            .map(|m| (m.name.clone(), m.permutation.clone()))
+            .collect();
+        TestingUtils::assert_permutation_equals_operation_string(&perm, op_string, str_to_gen);
+    }
+
+    pub fn validate_cycles_csv(path: String, puzzle_type: PuzzleType) -> () {
+        let allowed_moves = puzzle::load_puzzle_info("./../../data/puzzle_info.csv")
+            .unwrap()
+            .get(&puzzle_type)
+            .unwrap()
+            .clone();
+        let str_to_gen: HashMap<String, Permutation> = allowed_moves
+            .iter()
+            .map(|m| (m.name.clone(), m.permutation.clone()))
+            .collect();
+        // open csv file and read cycles
+        let mut reader = csv::Reader::from_path(path).unwrap();
+        // [0, 2, 1], l.r.r, 19
+        // perm, moves, num_moves
+        for record in reader.records() {
+            let record = record.unwrap();
+            let perm = Permutation::parse_permutation_from_str_arr(record[0].to_string());
+            let move_string = record[1].to_string();
+            TestingUtils::assert_permutation_equals_operation_string(
+                &perm,
+                move_string,
+                str_to_gen.clone(),
+            );
+        }
     }
 
     pub fn assert_index_path_equals_permutation(
