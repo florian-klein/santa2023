@@ -5,7 +5,7 @@ use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Permutation {
-    p: Vec<usize>,
+    pub p: Vec<usize>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
