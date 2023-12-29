@@ -13,7 +13,7 @@ pub struct Permutation {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PermutationInfo<'s> {
     pub permutation: &'s Permutation,
-    pub(crate) cycles: Vec<Vec<usize>>,
+    pub cycles: Vec<Vec<usize>>,
     pub signum: bool,
 }
 
