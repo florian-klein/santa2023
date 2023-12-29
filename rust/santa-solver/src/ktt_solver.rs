@@ -35,7 +35,7 @@ pub fn solve_puzzles(puzzles: &Vec<Puzzle>) -> HashMap<usize, String> {
         // TODO: Move map to puzzle types
         let mut generator_names: HashMap<Permutation, String> = HashMap::new();
         for move_ in puzzle.moves.iter() {
-            if (generator_names.contains_key(&move_.permutation)) {
+            if generator_names.contains_key(&move_.permutation) {
                 warn!(
                     "Duplicate generator for permutation {:?} and {:?}",
                     move_.name,

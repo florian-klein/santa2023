@@ -1,12 +1,11 @@
-use std::fmt::Formatter;
-use std::fmt::Display;
-use std::collections::HashMap;
-use std::error::Error;
+use crate::permutation::Permutation;
 use csv;
 use log::warn;
 use serde::Deserialize;
-use crate::permutation::Permutation;
-
+use std::collections::HashMap;
+use std::error::Error;
+use std::fmt::Display;
+use std::fmt::Formatter;
 
 #[derive(Debug, Clone)]
 pub struct Move {
@@ -19,7 +18,6 @@ struct MoveData {
     #[serde(flatten)]
     data: HashMap<String, Vec<usize>>,
 }
-
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum PuzzleType {
@@ -54,7 +52,11 @@ pub fn state_from_str(s: &str, element_map: &HashMap<String, usize>) -> Vec<usiz
     let mut state = Vec::new();
 
     for element in s.split(';') {
-        state.push(*element_map.get(element).expect(&format!("Unknown element {}", element)));
+        state.push(
+            *element_map
+                .get(element)
+                .expect(&format!("Unknown element {}", element)),
+        );
     }
     state
 }
@@ -76,7 +78,9 @@ pub fn build_element_map() -> HashMap<String, usize> {
     element_map
 }
 
-pub fn load_puzzle_info(puzzle_info_path : &str) -> Result<HashMap<PuzzleType, Vec<Move>>, Box<dyn Error>> {
+pub fn load_puzzle_info(
+    puzzle_info_path: &str,
+) -> Result<HashMap<PuzzleType, Vec<Move>>, Box<dyn Error>> {
     let mut puzzle_info_reader = csv::Reader::from_path(puzzle_info_path)?;
 
     let mut allowed_moves = HashMap::new();
@@ -85,7 +89,8 @@ pub fn load_puzzle_info(puzzle_info_path : &str) -> Result<HashMap<PuzzleType, V
         let puzzle_type = PuzzleType::from_str(&record[0])?;
 
         let mut moves = Vec::new();
-        let moves_data: MoveData = serde_json::from_str(&record[1].replace("'", "\"")).expect("Failed to parse moves data");
+        let moves_data: MoveData = serde_json::from_str(&record[1].replace("'", "\""))
+            .expect("Failed to parse moves data");
         for (name, permutation) in moves_data.data {
             let perm = Permutation::new(permutation.iter().map(|x| *x + 1).collect());
             moves.push(Move {
@@ -103,15 +108,18 @@ pub fn load_puzzle_info(puzzle_info_path : &str) -> Result<HashMap<PuzzleType, V
     Ok(allowed_moves)
 }
 
-pub fn load_puzzles(puzzles_path: &str, allowed_moves: &HashMap<PuzzleType, Vec<Move>>) -> Result<Vec<Puzzle>, Box<dyn Error>> {
-    let mut puzzles : Vec<Puzzle> = Vec::new();
+pub fn load_puzzles(
+    puzzles_path: &str,
+    allowed_moves: &HashMap<PuzzleType, Vec<Move>>,
+) -> Result<Vec<Puzzle>, Box<dyn Error>> {
+    let mut puzzles: Vec<Puzzle> = Vec::new();
     let mut puzzles_reader = csv::Reader::from_path(puzzles_path)?;
     let element_map = build_element_map();
 
     for record in puzzles_reader.records() {
         let record = record?;
         let puzzle_type = PuzzleType::from_str(&record[1])?;
-        let goal_state= state_from_str(&record[2], &element_map);
+        let goal_state = state_from_str(&record[2], &element_map);
         let initial_state = state_from_str(&record[3], &element_map);
         let num_wildcards = record[4].parse()?;
         puzzles.push(Puzzle {
@@ -141,6 +149,8 @@ pub fn moves_from_string(s: &str, moves: &Vec<Move>) -> Vec<Move> {
     let mut result = Vec::new();
     for name in s.split('.') {
         let mut found = false;
+        println!("moves: {:?}", moves);
+        println!("name: {}", name);
         for m in moves {
             if m.name == name {
                 result.push(m.clone());
@@ -163,7 +173,6 @@ impl Display for PuzzleType {
             PuzzleType::GLOBE(n, m) => write!(f, "globe_{}_{}", n, m),
         }
     }
-
 }
 
 #[cfg(test)]
@@ -172,9 +181,18 @@ mod tests {
 
     #[test]
     fn test_puzzle_type_from_str() {
-        assert_eq!(PuzzleType::from_str("cube_3/3/3").unwrap(), PuzzleType::CUBE(3));
-        assert_eq!(PuzzleType::from_str("wreath_3/3/3").unwrap(), PuzzleType::WREATH(3));
-        assert_eq!(PuzzleType::from_str("globe_3/4").unwrap(), PuzzleType::GLOBE(3, 4));
+        assert_eq!(
+            PuzzleType::from_str("cube_3/3/3").unwrap(),
+            PuzzleType::CUBE(3)
+        );
+        assert_eq!(
+            PuzzleType::from_str("wreath_3/3/3").unwrap(),
+            PuzzleType::WREATH(3)
+        );
+        assert_eq!(
+            PuzzleType::from_str("globe_3/4").unwrap(),
+            PuzzleType::GLOBE(3, 4)
+        );
         assert!(PuzzleType::from_str("foo").is_err());
     }
 
@@ -183,7 +201,10 @@ mod tests {
         let element_map = build_element_map();
         assert_eq!(state_from_str("A;B;C", &element_map), vec![1, 2, 3]);
         assert_eq!(state_from_str("B;A;C", &element_map), vec![2, 1, 3]);
-        assert_eq!(state_from_str("A;B;C;D;E;F", &element_map), vec![1, 2, 3, 4, 5, 6]);
+        assert_eq!(
+            state_from_str("A;B;C;D;E;F", &element_map),
+            vec![1, 2, 3, 4, 5, 6]
+        );
     }
 
     #[test]
@@ -191,13 +212,16 @@ mod tests {
         let puzzle_info = load_puzzle_info("./../../data/puzzle_info.csv").unwrap();
         let puzzles = load_puzzles("./../../data/puzzles.csv", &puzzle_info).unwrap();
         assert_eq!(puzzles.len(), 398);
-        assert_eq!(puzzles[0].initial_state, vec![4, 5, 4, 1, 5, 2, 1, 2, 3, 1, 3, 1, 4, 3, 4, 6, 6, 6, 5, 5, 2, 6, 2, 3]);
+        assert_eq!(
+            puzzles[0].initial_state,
+            vec![4, 5, 4, 1, 5, 2, 1, 2, 3, 1, 3, 1, 4, 3, 4, 6, 6, 6, 5, 5, 2, 6, 2, 3]
+        );
     }
 
     #[test]
     fn test_solution() {
         let id = 284;
-        let solution = "l.-r.l.r.-l.-l.r.l.-r.-l.-r.-r.l.-r.-l.-r.-r.l.-r.-l.-r.-r.-r.l.l.-r.-l.r.-l.r.-l.-l.r.l.-r.-l.-r.-r.l.-r.-l.-r.-r.l.-r.-l.-r.-r.-r.l.l.-r";
+        let solution = "l.r.l.-r.-l.-r.-r.l.r.-l.r.-l.r.r.-l.-l.r.r.-l.-l.-r.-r.l.r.l.l.l.-r.l.-r.-r.l.-r.-r.-l.-r.l.-r.-r.l.r.-l.-r.-r.l.l.-r.l.-r.-r.l.-r.-r.-l.-r.l.r.r.-l.-r.-l.-r.-r.-l.r.r.l.l.-r.-r.l.l.-r.-r.-r.-l.-r.-r.-l.-r.l.r.-l.r.l.r.r.-l.-l.r.r.-l.-l.-r.-r.l.r.r.l.r.l.-r.-r.-r.-r.-l.-r.-r.-r.-l.-l.r.-l.r.r.-l.-l.-r.-r.l.r.l.l.r.r.l.r.r.-l.-l.-l.-l.-r.-r.-r.l.-r.-r.-l.-r.l.l.r.l.r.l.-r.-r.-l.-l.-r.-r.-r.-l.-l.-l.r.-l.-l.-l.-r.-r.-l.-r.-r.l.-r.-l.-l.-r.-r.-l.-r.l.r.r.r.r.-l.-l.r.l.-r.-l.-r.-r.-l.-r.-r.-r.-l.-l.-l.-r.-r.l.r.-l.-l.-r.l.-r.-l.r.r.r.-l.-l.r.r.-l.-l.-r.-r.-r.-l.-r.-r.-l.-r.l.r.-l.r.l.r.r.-l.-l.-r.-r.l.r.l.r.r.r.-l.-l.r.r.-l.-l.-r.-r.l.r.r.l.r.l.-r.-r.l.l.l.-r.l.-r.-r.l.-r.-r.-l.-r.l.r.-l.-l.-r.-r.l.r.l.r.r.r.r.-l.-l.r.r.-l.-l.-r.-r.l.r.r.l.r.l.-r.-r.-r.l.r.-l.r.l.-r.-r.l.r.r.-l.-l.r.r.-l.-l.-r.-r.l.r.r.l.r.l.-r.-r.-r.l.r.r.l.-r.-l.-r.-r.-r.-r.-l.-l.r.-l.-r.-r.-l";
         let puzzle_info = load_puzzle_info("./../../data/puzzle_info.csv").unwrap();
         let puzzles = load_puzzles("./../../data/puzzles.csv", &puzzle_info).unwrap();
         let puzzle = puzzles.iter().find(|p| p.id == id).unwrap();
@@ -207,6 +231,7 @@ mod tests {
         println!("Initial state: {:?}", state);
         for m in &moves {
             state = m.permutation.apply(&state);
+            println!("Move: {:?} -> {:?}", m.name, state);
         }
         assert_eq!(state, puzzle.goal_state);
     }
