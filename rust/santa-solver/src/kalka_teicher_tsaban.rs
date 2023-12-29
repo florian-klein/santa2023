@@ -48,7 +48,7 @@ pub fn find_c_cycle(
         let mut tau_pow = Permutation::identity(tau.len());
         'inner: for m in 1..=n {
             // Check whether tau.pow(m) is a c-cycle
-            tau_pow = tau_pow.compose(&tau);  // TODO: should be the other way around?
+            tau_pow = tau_pow.compose(&tau); // TODO: should be the other way around?
             if let Some(tau_cycles) = tau_pow.cycle_decomposition_max(c) {
                 let mut found = false;
                 for cycle in tau_cycles {
@@ -86,8 +86,8 @@ pub fn find_c_cycles(
 ) -> Option<HashMap<usize, (PermutationPath, Permutation)>> {
     let generator = PermutationGroupIterator::new(&gen_to_str);
     let max_c = *cs.iter().max().unwrap();
-    let mut mus : HashMap<usize, (PermutationPath, Permutation)> = HashMap::new();
-    let mut lengths : HashMap<usize, usize> = HashMap::new();
+    let mut mus: HashMap<usize, (PermutationPath, Permutation)> = HashMap::new();
+    let mut lengths: HashMap<usize, usize> = HashMap::new();
     let mut i = 0;
     for (mut tau_path, tau) in generator {
         i += 1;
@@ -115,24 +115,31 @@ pub fn find_c_cycles(
                         }
                     }
                 }
-                if found && (!lengths.contains_key(&found_c) || (lengths.get(&found_c).unwrap() > &(tau_path.arr.len() * m))) {
+                if found
+                    && (!lengths.contains_key(&found_c)
+                        || (lengths.get(&found_c).unwrap() > &(tau_path.arr.len() * m)))
+                {
                     tau_path.pow(m);
-                    debug!("Found new {}-cycle of length {}", found_c, tau_path.arr.len());
+                    debug!(
+                        "Found new {}-cycle of length {}",
+                        found_c,
+                        tau_path.arr.len()
+                    );
                     lengths.insert(found_c, tau_path.arr.len());
                     mus.insert(found_c, (tau_path.clone(), tau_pow.clone()));
                 }
             }
             if i >= depth {
                 if mus.len() > 0 {
-                    return Some(mus)
+                    return Some(mus);
                 }
                 warn!("Aborting after trying {} generators", i);
-                return None
+                return None;
             }
         }
     }
     if mus.len() > 0 {
-        return Some(mus)
+        return Some(mus);
     }
     None
 }
@@ -207,7 +214,6 @@ pub fn factorize(
         .keys()
         .map(|x| x.clone())
         .collect::<Vec<Permutation>>();
-    debug!("generators: {:?}", generators);
     let n = target.len();
     let c = match permutation_info.signum {
         false => 2,
@@ -229,6 +235,13 @@ pub fn factorize(
         "After step 1, we have mu : {:?} and mu_path: {:?}",
         mu, mu_path
     );
+
+    TestingUtils::assert_index_path_equals_permutation_using_hashmap(
+        &mu_path.arr,
+        &mu,
+        &gen_to_idx,
+    );
+    info!("We have asserted that the path results in this mu");
 
     // disjoint cycles of length c
     let c_group = match permutation_info.signum {
@@ -280,7 +293,6 @@ pub fn factorize(
         // check if we could find elements in next iteration
         if a_l.is_empty() {
             warn!("Error: A_l is empty");
-            debug!("a_union: {:?}", a_union);
             debug!("a_union length: {:?}", a_union.len());
             debug!("c_set length: {:?}", c_set.len());
             // Print the number of elements in c_set that are not in a_union

@@ -1,10 +1,10 @@
-use santa_solver_lib::ktt_solver;
 use ctrlc2;
 use env_logger;
 use log::{debug, info};
+use santa_solver_lib::ktt_solver;
+use santa_solver_lib::puzzle;
 use std::collections::HashMap;
 use std::process::exit;
-use santa_solver_lib::puzzle;
 
 fn write_solution_to_file(solution_path: &str, results: &HashMap<usize, String>) {
     debug!("Writing solution to file...");
@@ -66,7 +66,13 @@ fn main() {
         if puzzle.num_wildcards > 0 {
             continue;
         }
-        if puzzle.initial_state.iter().collect::<std::collections::HashSet<_>>().len() != puzzle.initial_state.len() {
+        if puzzle
+            .initial_state
+            .iter()
+            .collect::<std::collections::HashSet<_>>()
+            .len()
+            != puzzle.initial_state.len()
+        {
             continue;
         }
         if puzzle.initial_state.len() > 32 {
@@ -75,7 +81,6 @@ fn main() {
         minko_solve.push(puzzle.id);
     }
     println!("Minko solve: {:?}", minko_solve);
-    exit(0);
 
     /*
         let wreath_puzzles: Vec<puzzle::Puzzle> = puzzles.iter().filter(|p| {
@@ -88,7 +93,7 @@ fn main() {
     >>>>>>> 0c62b2c1312d64ba1a7c43b73f916a45beb066d9
         info!("Solving {} wreath puzzles", wreath_puzzles.len());
         let results = wreath::solve_puzzles(&wreath_puzzles); */
-    info!("Solving puzzles using KTT");
+    println!("Solving {} wreath puzzles", wreath_puzzles.len());
     let results = ktt_solver::solve_puzzles(&puzzles);
     write_solution_to_file(solution_path, &results);
 }
