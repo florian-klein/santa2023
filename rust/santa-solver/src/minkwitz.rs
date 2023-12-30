@@ -47,6 +47,10 @@ impl PermAndWord {
 }
 
 impl MinkwitzTable {
+    pub fn new() -> Self {
+        let table: HashMap<(usize, usize), String> = HashMap::new();
+        MinkwitzTable { table }
+    }
     pub fn factorize_minkwitz(
         gens: GroupGens,
         base: GroupBase,
@@ -71,16 +75,59 @@ impl MinkwitzTable {
         return list;
     }
 
-    pub fn buildShortWordsSGS(gens: GroupGens, base: GroupBase, n: usize, s: usize, w: usize) {
+    pub fn buildShortWordsSGS(
+        gens: GroupGens,
+        base: GroupBase,
+        n: usize,
+        s: usize,
+        w: usize,
+    ) -> TransTable {
         let mu_table = TransTable::new();
-        let permutation_size = gens.elements[0].perm.len();
-        for i in 0..base.elements.len() {
-            mu_table.insert((i, base.elements[i]), PermAndWord::identity(n));
-        }
-        let mut max = n;
-        let mut limit = w;
-        let mut count = 0;
+        // let permutation_size = gens.elements[0].perm.len();
+        // for i in 0..base.elements.len() {
+        //     mu_table.insert((i, base.elements[i]), PermAndWord::identity(n));
+        // }
+        // let mut max = n;
+        // let mut limit = w;
+        // let mut count = 0;
         // let group_iterator = PermutationGroupIterator::new(gens);
-        // for (perm, word) in PermutationGroupIterator
+        // for (perm, word) in group_iterator {
+        //     count += 1;
+        //     if count >= max || is_table_full(gens, mu_table) {
+        //         break;
+        //     }
+        //     let word = decode_index(i, level, gens.len);
+        //     let pw = PermAndWord {
+        //         perm: perm,
+        //         word: word,
+        //     };
+        //     one_round(gens, base, limit, 0, mu_table, pw);
+        //     if count % s == 0 {
+        //         one_improve(gens, base, limit, mu_table);
+        //         if !is_table_full(gens, mu_table) {
+        //             fill_orbits(gens, base, limit, mu_table);
+        //         }
+        //         limit = limit * 5 / 4;
+        //     }
+        // }
+        return mu_table;
+    }
+
+    pub fn is_table_full(n: usize, gens: GroupGens, mu_table: TransTable) -> bool {
+        return false;
+    }
+
+    pub fn one_round(
+        gens: GroupGens,
+        base: GroupBase,
+        limit: usize,
+        c: usize,
+        mu_table: TransTable,
+        t: PermAndWord,
+    ) {
+        let mut i = c;
+        // while i < base.elements.len() and t.perm.is_identity(){
+        //     t = one_step(n, gens, base,i, t, mu_table);
+        // }
     }
 }

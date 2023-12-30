@@ -104,6 +104,15 @@ impl Permutation {
         Permutation::new(p)
     }
 
+    pub fn is_identity(&self) -> bool {
+        for i in 0..self.len() {
+            if self.p[i] != i + 1 {
+                return false;
+            }
+        }
+        true
+    }
+
     pub fn len(&self) -> usize {
         self.p.len()
     }
