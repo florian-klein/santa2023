@@ -80,18 +80,23 @@ pub fn find_c_cycle(
 }
 
 pub fn find_c_cycles_relaxed_search(
-    gen_to_str: &HashMap<Permutation, PermutationIndex>,
-    cs: &Vec<usize>,
-    n: usize,
+    gen_to_str: &HashMap<Permutation, usize>,
     depth: usize,
     target_cycles: HashSet<usize>, // contains the cycle lengths required to build target
 ) -> Option<HashMap<usize, (PermutationPath, Permutation)>> {
     let generator = PermutationGroupIterator::new(&gen_to_str);
     let mut i = 0;
+    let mut cycle_length_to_path: HashMap<usize, PermutationPath> = HashMap::new();
     for (tau_path, tau) in generator {
         i += 1;
-        if i % 10000 == 0 {
+        if i % 20000 == 0 {
             debug!("Searching for cycles. Group elements tried: {:?}", i);
+        }
+        if i % 100000 == 0 {
+            debug!(
+                "Current state of our cycle length to path map: {:?}",
+                cycle_length_to_path
+            );
         }
         let tau_info = tau.compute_info();
         // Worst-case: O(#perm_length)
@@ -111,11 +116,37 @@ pub fn find_c_cycles_relaxed_search(
                 if lcm % cycle_length == 0 {
                     continue;
                 }
-                debug!(
-                    "For a cycle of length {:?}, we found a factorization of length {:?}",
-                    cycle_length,
-                    tau_path.arr.len() * lcm
-                );
+                let factorization_length = tau_path.arr.len() * lcm;
+                if cycle_length_to_path.contains_key(cycle_length) {
+                    // check if we found a shorter factorizationk
+                    let prev_path: &PermutationPath =
+                        cycle_length_to_path.get(cycle_length).unwrap();
+                    if factorization_length < prev_path.arr.len() {
+                        debug!(
+                            "For the cycle id {:?} with current path len {:?}, we found a new path of length {:?}",
+                            cycle_length, prev_path.arr.len(), factorization_length
+                        );
+                        // debug!("cyclebef: {:?}", cycle_length_to_path);
+                        // debug!("tau_path {:?}, lcm: {:?}", tau_path, lcm);
+                        let mut new_path_indices = vec![];
+                        for _ in 0..lcm {
+                            new_path_indices.extend(tau_path.arr.clone());
+                        }
+                        let new_perm_path = PermutationPath::new(new_path_indices);
+                        cycle_length_to_path.insert(*cycle_length, new_perm_path);
+                    }
+                } else {
+                    debug!(
+                        "For the cycle of length {:?}, we inserted a new path of length {:?}",
+                        cycle_length, factorization_length
+                    );
+                    let mut new_path_indices = vec![];
+                    for _ in 0..lcm {
+                        new_path_indices.extend(tau_path.arr.clone());
+                    }
+                    let new_perm_path = PermutationPath::new(new_path_indices);
+                    cycle_length_to_path.insert(*cycle_length, new_perm_path);
+                }
             }
         }
     }

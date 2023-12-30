@@ -210,9 +210,4 @@ mod tests {
         let path = "../../data/cycles/wreath_6_6_2c.csv";
         TestingUtils::validate_cycles_csv(path.to_string(), PuzzleType::WREATH(6));
     }
-    // #[test]
-    // fn test_example_csv_move_file_three_cycle() {
-    //     let path = "../../data/cycles/wreath_7_7_3c.csv";
-    //     TestingUtils::validate_cycles_csv(path.to_string(), PuzzleType::WREATH(7));
-    // }
 }
