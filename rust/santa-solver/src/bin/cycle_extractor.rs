@@ -2,6 +2,7 @@ use log::{debug, info, warn};
 use santa_solver_lib::kalka_teicher_tsaban as kalka;
 use santa_solver_lib::puzzle;
 use santa_solver_lib::puzzle::PuzzleType;
+use santa_solver_lib::puzzle::PuzzleTypeWrapper;
 use santa_solver_lib::testing_utils::TestingUtils;
 use std::collections::HashMap;
 
@@ -28,30 +29,47 @@ fn main() {
     for (puzzle_type, moves) in puzzles_info.iter() {
         let max_depth = match puzzle_type {
             PuzzleType::CUBE(_) => 100000,
-            PuzzleType::GLOBE(n, m) => if *n < 25 && *m < 25 { 1000000 } else { 500000 },
-            PuzzleType::WREATH(n) => if *n < 30 { 4000000 } else { 1000000 },
+            PuzzleType::GLOBE(n, m) => {
+                if *n < 25 && *m < 25 {
+                    1000000
+                } else {
+                    500000
+                }
+            }
+            PuzzleType::WREATH(n) => {
+                if *n < 30 {
+                    4000000
+                } else {
+                    1000000
+                }
+            }
         };
-
         let mut index_to_gen_name = Vec::new();
-        let mut gen_to_idx = HashMap::new();
-        let mut index_to_gen = Vec::new(); // todo: remove after testin
+        let mut gen_perm_to_index = HashMap::new();
+        let mut index_to_gen_perm = Vec::new(); // todo: remove after testin
         let mut counter = 0;
 
         for m in moves {
-            if gen_to_idx.contains_key(&m.permutation) {
-                //warn!("double elemeent");
+            if gen_perm_to_index.contains_key(&m.permutation) {
                 continue;
             }
-            gen_to_idx.insert(m.permutation.clone(), counter);
+            gen_perm_to_index.insert(m.permutation.clone(), counter);
             index_to_gen_name.push(m.name.clone());
-            index_to_gen.push(m.permutation.clone());
+            index_to_gen_perm.push(m.permutation.clone());
             counter += 1;
         }
-        // println!("{:?}", index_to_gen_name);
+        let puzzle_type_wrapper =
+            PuzzleTypeWrapper::new(index_to_gen_name, index_to_gen_perm, gen_perm_to_index);
+
         let n = moves[0].permutation.len();
         debug!("Generating c-cycles for puzzle type {:?}", puzzle_type);
         let c_cycles = vec![2_usize, 3, 4, 5, 6, 7, 8, 9, 10];
-        let mus = kalka::find_c_cycles(&gen_to_idx, &c_cycles, n, max_depth); // TODO: If successful, try to find shorter paths
+        let mus = kalka::find_c_cycles(
+            &puzzle_type_wrapper.gen_perm_to_index,
+            &c_cycles,
+            n,
+            max_depth,
+        );
         if mus.is_none() {
             warn!("Failed to find c-cycles for puzzle type {:?}", puzzle_type);
         } else {
@@ -67,17 +85,24 @@ fn main() {
                 std::fs::File::create(&cycles_file_path).expect("Failed to create file");
             }
             let mut writer = csv::Writer::from_path(&cycles_file_path).unwrap();
-            writer.write_record(&["order", "permutation", "path", "length"]).unwrap();
+            writer
+                .write_record(&["order", "permutation", "path", "length"])
+                .unwrap();
             for (c, (mu_path, mu)) in mus.iter() {
                 TestingUtils::assert_index_path_equals_permutation(
                     &mu_path.arr,
                     &mu,
-                    &index_to_gen,
+                    &puzzle_type_wrapper.index_to_gen_perm,
                 );
-                let path_str = mu_path.to_string(&index_to_gen_name);
+                let path_str = mu_path.to_string(&puzzle_type_wrapper.index_to_gen_name);
                 let length = path_str.split('.').count();
                 writer
-                    .write_record(&[&c.to_string(), &mu.to_string(), &path_str, &length.to_string()])
+                    .write_record(&[
+                        &c.to_string(),
+                        &mu.to_string(),
+                        &path_str,
+                        &length.to_string(),
+                    ])
                     .unwrap(); // TODO: Find a nicer way to write the permutation
             }
             writer.flush().unwrap();
@@ -87,15 +112,15 @@ fn main() {
                 TestingUtils::assert_index_path_equals_permutation(
                     &mu_path.arr,
                     &mu,
-                    &index_to_gen,
+                    &index_to_gen_perm,
                 );
                 debug!("Found {}-cycles for puzzle type {:?}", c, puzzle_type);
-                let cycles = kalka::generate_cycles(&gen_to_idx, &mu, &mu_path, 100000);
+                let cycles = kalka::generate_cycles(&gen_perm_to_index, &mu, &mu_path, 100000);
                 // for (perm, path) in &cycles {
                 //     TestingUtils::assert_index_path_equals_permutation_using_hashmap(
                 //         &path.arr,
                 //         &perm,
-                //         &gen_to_idx,
+                //         &gen_perm_to_index,
                 //     );
                 // }
                 info!(
@@ -123,13 +148,13 @@ fn main() {
                     // TestingUtils::assert_index_path_equals_permutation_using_hashmap(
                     //     &path.arr,
                     //     &perm,
-                    //     &gen_to_idx,
+                    //     &gen_perm_to_index,
                     // );
                     let path_str = path.to_string(&index_to_gen_name);
                     // println!("path {:?}, path_str: {:?}", path, path_str);
                     // println!(
                     //     "index_to_gen_name: {:?}, genidx: {:?}, index to perm {:?}",
-                    //     index_to_gen_name, gen_to_idx, index_to_gen
+                    //     index_to_gen_name, gen_perm_to_index, index_to_gen
                     // );
                     // TestingUtils::assert_perm_equals_op_string_for_puzzle_type(
                     //     perm.clone(),
@@ -171,7 +196,13 @@ mod tests {
                 .permutation
                 .compose(&perm);
         }
-        assert_eq!(perm.get_vec(), &vec![1_usize, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]);
+        assert_eq!(
+            perm.get_vec(),
+            &vec![
+                1_usize, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22,
+                21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32
+            ]
+        );
     }
 
     #[test]

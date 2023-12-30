@@ -1,6 +1,5 @@
 use crate::permutation::Permutation;
 use csv;
-use log::warn;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::error::Error;
@@ -24,6 +23,27 @@ pub enum PuzzleType {
     CUBE(usize),
     WREATH(usize),
     GLOBE(usize, usize),
+}
+
+#[derive(Debug)]
+pub struct PuzzleTypeWrapper {
+    pub gen_perm_to_index: HashMap<Permutation, usize>,
+    pub index_to_gen_perm: Vec<Permutation>,
+    pub index_to_gen_name: Vec<String>,
+}
+
+impl PuzzleTypeWrapper {
+    pub fn new(
+        index_to_gen_name: Vec<String>,
+        index_to_gen_perm: Vec<Permutation>,
+        gen_perm_to_index: HashMap<Permutation, usize>,
+    ) -> PuzzleTypeWrapper {
+        PuzzleTypeWrapper {
+            index_to_gen_perm,
+            index_to_gen_name,
+            gen_perm_to_index,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
