@@ -1,5 +1,3 @@
-use log::info;
-
 use crate::groups::DepthLimitedPermutationGroupIterator;
 use log::debug;
 use std::collections::HashMap;
@@ -116,6 +114,22 @@ impl Permutation {
 
     pub fn len(&self) -> usize {
         self.p.len()
+    }
+
+    pub fn lcm(nums: Vec<usize>) -> usize {
+        if nums.len() == 1 {
+            return nums[0];
+        }
+        let a = nums[0];
+        let b = Self::lcm(nums[1..].to_vec());
+        a * b / Self::gcd_of_two_numbers(a, b)
+    }
+
+    pub fn gcd_of_two_numbers(a: usize, b: usize) -> usize {
+        if b == 0 {
+            return a;
+        }
+        Self::gcd_of_two_numbers(b, a % b)
     }
 
     pub fn get_vec(&self) -> &Vec<usize> {

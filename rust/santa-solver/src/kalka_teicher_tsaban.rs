@@ -78,6 +78,20 @@ pub fn find_c_cycle(
     None
 }
 
+pub fn find_c_cycles_relaxed_search(
+    gen_to_str: &HashMap<Permutation, PermutationIndex>,
+    cs: &Vec<usize>,
+    n: usize,
+    depth: usize,
+    target_cycles: Vec<usize>,
+) -> Option<HashMap<usize, (PermutationPath, Permutation)>> {
+    let generator = PermutationGroupIterator::new(&gen_to_str);
+    let max_c = *cs.iter().max().unwrap();
+    let mut mus: HashMap<usize, (PermutationPath, Permutation)> = HashMap::new();
+    let mut lengths: HashMap<usize, usize> = HashMap::new();
+    None
+}
+
 pub fn find_c_cycles(
     gen_to_str: &HashMap<Permutation, PermutationIndex>,
     cs: &Vec<usize>,
