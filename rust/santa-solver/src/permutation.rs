@@ -14,6 +14,7 @@ pub struct Permutation {
 pub struct PermutationInfo<'s> {
     pub permutation: &'s Permutation,
     pub cycles: Vec<Vec<usize>>,
+    pub cycles_id: Vec<usize>,
     pub signum: bool,
 }
 
@@ -201,6 +202,7 @@ impl Permutation {
         let cycle_len = self.len() / 2;
         let mut visited = vec![false; self.len()];
         let mut even_cycles = 0;
+        let mut cycles_id: Vec<usize> = vec![];
         for i in 0..self.len() {
             if !visited[i] {
                 let mut cycle = Vec::with_capacity(cycle_len);
@@ -213,14 +215,19 @@ impl Permutation {
                 if cycle.len() % 2 == 0 {
                     even_cycles += 1;
                 }
+                if cycle.len() != 1 {
+                    cycles_id.push(cycle.len());
+                }
                 cycles.push(cycle);
             }
         }
         // The permutation is even iff the number of even cycles is even
+        cycles_id.sort();
         let signum = even_cycles % 2 == 0;
         PermutationInfo {
             permutation: self,
             cycles,
+            cycles_id,
             signum,
         }
     }
@@ -517,6 +524,7 @@ mod permutation_tests {
         let info = p.compute_info();
         assert_eq!(info.cycles, vec![vec![1, 2, 6], vec![3], vec![4, 5]]);
         assert_eq!(info.signum, false);
+        assert_eq!(info.cycles_id, vec![2, 3]);
     }
 
     #[test]
