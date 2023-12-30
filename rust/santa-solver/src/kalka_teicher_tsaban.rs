@@ -3,6 +3,7 @@ use crate::permutation::{Permutation, PermutationIndex, PermutationInfo, Permuta
 use crate::testing_utils::TestingUtils;
 use log::{debug, info, warn};
 use std::collections::{HashMap, HashSet};
+use std::num;
 
 fn to_2_cycle(p: &PermutationInfo) -> Vec<Vec<usize>> {
     let cycles = &p.cycles; // disjoint cycles of arbitrary length
@@ -83,12 +84,41 @@ pub fn find_c_cycles_relaxed_search(
     cs: &Vec<usize>,
     n: usize,
     depth: usize,
-    target_cycles: Vec<usize>,
+    target_cycles: HashSet<usize>, // contains the cycle lengths required to build target
 ) -> Option<HashMap<usize, (PermutationPath, Permutation)>> {
     let generator = PermutationGroupIterator::new(&gen_to_str);
-    let max_c = *cs.iter().max().unwrap();
-    let mut mus: HashMap<usize, (PermutationPath, Permutation)> = HashMap::new();
-    let mut lengths: HashMap<usize, usize> = HashMap::new();
+    let mut i = 0;
+    for (tau_path, tau) in generator {
+        i += 1;
+        if i % 10000 == 0 {
+            debug!("Searching for cycles. Group elements tried: {:?}", i);
+        }
+        let tau_info = tau.compute_info();
+        // Worst-case: O(#perm_length)
+        for cycle_length in &tau_info.cycles_id {
+            // check if this permutation contains a permutation length that we also need in target
+            if target_cycles.contains(cycle_length) {
+                // Calculate the power of tau s.t. we have a c-cycle of the given length
+                // Achieve this by finding the smallest common multiple of all cycle_lengths but
+                // the current one
+                let mut lcm = 1;
+                for other_cycle_length in &tau_info.cycles_id {
+                    if other_cycle_length != cycle_length {
+                        lcm = Permutation::lcm_two_nums(lcm, *other_cycle_length);
+                    }
+                }
+                // if the order of other permutations would remove our target cycle, continue
+                if lcm % cycle_length == 0 {
+                    continue;
+                }
+                debug!(
+                    "For a cycle of length {:?}, we found a factorization of length {:?}",
+                    cycle_length,
+                    tau_path.arr.len() * lcm
+                );
+            }
+        }
+    }
     None
 }
 

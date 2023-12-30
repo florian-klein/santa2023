@@ -1,7 +1,8 @@
 use log::{debug, info};
+use santa_solver_lib::kalka_teicher_tsaban as kalka;
 use santa_solver_lib::permutation::Permutation;
 use santa_solver_lib::{permutation, puzzle};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 fn main() {
@@ -136,6 +137,13 @@ fn main() {
             .collect();
         permutations.extend(three_cycles[&puzzle.puzzle_type].keys().map(|x| x.clone()));
         debug!("Finished loading two and three cycles for this problem (todo: add more cycles). Starting decomposing...");
+        // let target_info = target.compute_info();
+        // let target_cycle_lengths : HashSet<usize> = HashSet::new();
+        // for num in target_info.cycles_id{
+        //     target_cycle_lengths.insert(num);
+        // }
+        // let result = kalka::find_c_cycles_relaxed_search(gen_to_str, cs, n, 100, target_cycle_lengths)
+        // return None;
         let solution = permutation::decompose(&target.compute_info(), &permutations, 12);
         if solution.is_none() {
             debug!(

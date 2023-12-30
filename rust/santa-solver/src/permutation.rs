@@ -125,6 +125,10 @@ impl Permutation {
         a * b / Self::gcd_of_two_numbers(a, b)
     }
 
+    pub fn lcm_two_nums(num1: usize, num2: usize) -> usize {
+        return (num1 * num2) / Self::gcd_of_two_numbers(num1, num2);
+    }
+
     pub fn gcd_of_two_numbers(a: usize, b: usize) -> usize {
         if b == 0 {
             return a;
