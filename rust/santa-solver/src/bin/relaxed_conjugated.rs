@@ -63,53 +63,31 @@ fn main() {
         }
 
         // Step 1: Find c-cycles for all cycle lengths in target
-        let c_cycle_id_to_path = search::find_c_cycles_relaxed_search(
+        let conjugated_target_group_elements = search::find_c_cycles_relaxed_search(
             &gen_perm_to_index,
             100000,
-            target_cycle_lengths.clone(),
+            target.clone(),
+            puzzle.clone(),
         )
         .unwrap();
 
-        let mut target_c_cycle_to_path: HashMap<Permutation, PermutationPath> = HashMap::new();
         // Step 2: Find permutations that we need to build the c-cycles
-        for (c_cycle_length, c_cycle_path) in c_cycle_id_to_path {
-            // find the c-cycle permutation given from the path we obtained in our search
-            let mut c_cycle_perm = Permutation::identity(target.len());
-            for move_id in &c_cycle_path.arr {
-                c_cycle_perm = puzzle.moves[*move_id].permutation.compose(&c_cycle_perm);
-            }
-            let permutations_needed_for_c_cycle =
-                target_cycle_lengths.get(&c_cycle_length).unwrap();
-            // search for all permutations that we need to build the c-cycle
-            for target_c_cycle in permutations_needed_for_c_cycle {
-                let permutation_target_path = search::find_target_c_cycle_in_conjugated_group(
-                    target_c_cycle.clone(),
-                    c_cycle_path.clone(),
-                    target_c_cycle.clone(),
-                    &gen_perm_to_index,
+        for (perm, perm_path) in conjugated_target_group_elements {
+            let permutation_target_path = search::find_target_c_cycle_in_conjugated_group(
+                target.clone(),
+                perm_path,
+                perm,
+                &puzzle.moves,
+            );
+            if permutation_target_path.is_some() {
+                info!("----------------------------------------");
+                info!(
+                    "Found target path for this problem! Length: {:?} (todo: verify!!)",
+                    permutation_target_path.clone().unwrap().arr.len()
                 );
-                if permutation_target_path.is_some() {
-                    info!(
-                        "Found permutation path to build c-cycle of length {:?}",
-                        c_cycle_length
-                    );
-                    let permutation_target_path = permutation_target_path.unwrap();
-                    target_c_cycle_to_path
-                        .insert(target_c_cycle.clone(), permutation_target_path.clone());
-                }
+                info!("----------------------------------------");
+                let permutation_target_path = permutation_target_path.unwrap();
             }
         }
-        // Step 3: Combine the paths of disjunct cycles to a path that builds the target
-        let mut target_path_vec = vec![];
-        for (_, path) in target_c_cycle_to_path {
-            target_path_vec.extend(path.arr);
-        }
-        let target_path = PermutationPath::new(target_path_vec);
-        info!("----------------------------------------");
-        info!(
-            "Found target path for this problem! Length: {:?} (todo: verify!!)",
-            target_path.arr.len()
-        );
-        info!("----------------------------------------");
     }
 }

@@ -1,6 +1,9 @@
+use crate::groups::DepthLimitedPermutationGroupIterator;
 use crate::groups::PermutationGroupIterator;
 use crate::permutation::Permutation;
 use crate::permutation::PermutationPath;
+use crate::puzzle::Move;
+use crate::puzzle::Puzzle;
 use log::{debug, warn};
 use std::collections::HashMap;
 use std::collections::VecDeque;
@@ -9,13 +12,18 @@ pub fn find_target_c_cycle_in_conjugated_group(
     c_cycle: Permutation,
     c_cycle_path: PermutationPath,
     target_c_cycle: Permutation,
-    gens: &HashMap<Permutation, usize>,
+    index_to_move: &Vec<Move>,
 ) -> Option<PermutationPath> {
     debug!("Searching target c-cycle of length {:?}", c_cycle.p.len());
-    let mut current_path: VecDeque<usize> = c_cycle_path.arr.iter().cloned().collect();
-    let mut current_perm = c_cycle;
+    let current_path: VecDeque<usize> = c_cycle_path.arr.iter().cloned().collect();
+    let current_perm = c_cycle;
     let mut counter = 0;
-    for (gen_perm, gen_path) in gens {
+    let gens = index_to_move
+        .iter()
+        .map(|x| x.permutation.clone())
+        .collect();
+    let generator_iterator = DepthLimitedPermutationGroupIterator::new(&gens, 10000);
+    for (gen_perm, _gen_path) in generator_iterator {
         if counter % 10000 == 0 {
             debug!(
                 "Searching for target c-cycle. Group elements tried: {:?}",
@@ -31,25 +39,31 @@ pub fn find_target_c_cycle_in_conjugated_group(
             let result_path = PermutationPath::new(result_vec_path);
             return Some(result_path);
         }
-        let gen_inverse = gen_perm.inverse();
-        let inverse_path = gens.get(&gen_inverse).unwrap();
-        current_perm = gen_perm.compose(&current_perm.compose(&gen_inverse));
-        current_path.push_front(*inverse_path);
-        current_path.push_back(*gen_path);
+        // let gen_inverse = gen_perm.inverse();
+        // let inverse_path = gen_perm_to_index.get(&gen_inverse).unwrap();
+        // current_perm = gen_perm.compose(&current_perm.compose(&gen_inverse));
+        // current_path.push_front(*inverse_path);
+        // current_path.push_back(*gen_path);
         counter += 1;
     }
-    debug!("No target c-cycle found");
+    // debug!("No target c-cycle found");
     None
 }
 
 pub fn find_c_cycles_relaxed_search(
     gen_perm_to_index: &HashMap<Permutation, usize>,
     depth: usize,
-    target_cycles: HashMap<usize, Vec<Permutation>>, // contains the cycle lengths required to build target
-) -> Option<HashMap<usize, PermutationPath>> {
+    target: Permutation,
+    puzzle: Puzzle,
+) -> Option<Vec<(Permutation, PermutationPath)>> {
     let generator = PermutationGroupIterator::new(&gen_perm_to_index);
     let mut i = 0;
-    let mut cycle_length_to_path: HashMap<usize, PermutationPath> = HashMap::new();
+    let mut cycle_length_to_path: Vec<(Permutation, PermutationPath)> = Vec::new();
+    let mut index_to_perm: Vec<Permutation> = Vec::new();
+    let target_cycles = target.compute_info().cycles_id;
+    for move_elm in &puzzle.moves {
+        index_to_perm.push(move_elm.permutation.clone());
+    }
     for (tau_path, tau) in generator {
         i += 1;
         if i % 20000 == 0 {
@@ -63,53 +77,9 @@ pub fn find_c_cycles_relaxed_search(
             return None;
         }
         let tau_info = tau.compute_info();
-        // Worst-case: O(#perm_length)
-        for cycle_length in &tau_info.cycles_id {
-            // check if this permutation contains a permutation length that we also need in target
-            if target_cycles.contains_key(cycle_length) {
-                // Calculate the power of tau s.t. we have a c-cycle of the given length
-                // Achieve this by finding the smallest common multiple of all cycle_lengths but the current one
-                let mut lcm = 1;
-                for other_cycle_length in &tau_info.cycles_id {
-                    if other_cycle_length != cycle_length {
-                        lcm = Permutation::lcm_two_nums(lcm, *other_cycle_length);
-                    }
-                }
-                // if the order of other permutations would remove our target cycle, continue
-                if lcm % cycle_length == 0 {
-                    continue;
-                }
-                let factorization_length = tau_path.arr.len() * lcm;
-                if cycle_length_to_path.contains_key(cycle_length) {
-                    // check if we found a shorter factorizationk
-                    let prev_path: &PermutationPath =
-                        cycle_length_to_path.get(cycle_length).unwrap();
-                    if factorization_length < prev_path.arr.len() {
-                        debug!(
-                            "For the cycle id {:?} with current path len {:?}, we found a new path of length {:?}",
-                            cycle_length, prev_path.arr.len(), factorization_length
-                        );
-                        let mut new_path_indices = vec![];
-                        for _ in 0..lcm {
-                            new_path_indices.extend(tau_path.arr.clone());
-                        }
-                        let new_perm_path = PermutationPath::new(new_path_indices);
-                        cycle_length_to_path.insert(*cycle_length, new_perm_path);
-                    }
-                } else {
-                    debug!(
-                        "For the cycle of length {:?}, we inserted a new path of length {:?}",
-                        cycle_length, factorization_length
-                    );
-                    let mut new_path_indices = vec![];
-                    for _ in 0..lcm {
-                        new_path_indices.extend(tau_path.arr.clone());
-                    }
-                    let new_perm_path = PermutationPath::new(new_path_indices);
-                    cycle_length_to_path.insert(*cycle_length, new_perm_path);
-                }
-            }
+        if tau_info.cycles_id == target_cycles {
+            cycle_length_to_path.push((tau, tau_path));
         }
     }
-    None
+    Some(cycle_length_to_path)
 }
