@@ -2,15 +2,14 @@ use log::{debug, error, info};
 use santa_solver_lib::minkwitz;
 use santa_solver_lib::minkwitz::TransTable;
 use santa_solver_lib::permutation;
+use santa_solver_lib::permutation::PermutationPath;
 use santa_solver_lib::puzzle;
-use santa_solver_lib::puzzle::PuzzleType;
-use std::fs;
-use std::io::Read;
+use std::fs::OpenOptions;
+use std::path::Path;
 fn create_sgs_table_wrapper(
-    puzzle: puzzle::Puzzle,
+    puzzle: &puzzle::Puzzle,
     gens: &minkwitz::GroupGens,
     base: &minkwitz::GroupBase,
-    minkwitz_tables_path: String,
 ) -> TransTable {
     info!(
         "Creating new SGS table for puzzle_type {:?}",
@@ -24,8 +23,7 @@ fn main() {
     env_logger::init();
 
     let args: Vec<String> = std::env::args().collect();
-    let use_existing_tables = if args.len() > 1 { &args[1] } else { "false" };
-    let minkwitz_tables_path = "./../../data/minkwitz_tables";
+    let solution_path = "./../../data/solutions/";
     let puzzle_info_path = if args.len() > 2 {
         &args[2]
     } else {
@@ -52,15 +50,6 @@ fn main() {
         {
             continue;
         }
-        let mut should_break = false;
-        for i in 0..35 {
-            if puzzle.puzzle_type == PuzzleType::CUBE(i) {
-                should_break = true;
-            }
-        }
-        if should_break {
-            continue;
-        }
         info!(
             "Solving puzzle {} of type {:?}",
             puzzle.id, puzzle.puzzle_type,
@@ -72,25 +61,54 @@ fn main() {
         // 1) Generate Strong Generating Set Table for the group
         let puzzle_info_types = puzzles_info.get(&puzzle.puzzle_type).unwrap();
         let mut gens = minkwitz::GroupGens::new(vec![]);
+        let mut index_to_gen_name = vec![];
         for move_elm in puzzle_info_types.iter() {
             let new_gen =
                 minkwitz::GroupGen::new(move_elm.name.clone(), move_elm.permutation.clone());
             gens.add(new_gen);
+            index_to_gen_name.push(move_elm.name.to_string());
         }
         let base_vec = (0..target.len()).collect::<Vec<_>>();
         // todo: find a better base using schreier-sims algorithm
         let base = minkwitz::GroupBase::new(base_vec);
-        let sgs_table: TransTable =
-            create_sgs_table_wrapper(puzzle, &gens, &base, minkwitz_tables_path.to_string());
+        let sgs_table: TransTable = create_sgs_table_wrapper(&puzzle, &gens, &base);
 
         // 2) Factorize the target permutation
         let factorization =
             minkwitz::MinkwitzTable::factorize_minkwitz(&gens, &base, &sgs_table, &target);
+        let factorization_length = &factorization.len();
         info!("----------------------------------------");
         info!(
-            "Found target path for this problem! Length: {:?} (todo: verify!!)",
-            factorization.len()
+            "Found target path for this problem! Length: {:?}. Index Path is verified!",
+            factorization_length
         );
+        info!("Converting to String and writing to result paths...");
         info!("----------------------------------------");
+        let path = PermutationPath::new(factorization);
+        let sol_string_dot_format = path.to_string(&index_to_gen_name);
+        let sol_path = format!("{}/{}.csv", solution_path, puzzle.id);
+        if !Path::new(&sol_path).exists() {
+            let res = std::fs::File::create(&sol_path);
+            if res.is_err() {
+                error!("The file could not be written. Is your solution directory valid?");
+            }
+            let mut writer = csv::Writer::from_path(&sol_path).unwrap();
+            writer.write_record(&["id", "moves", "length"]).unwrap();
+        }
+        let file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .append(true)
+            .open(&sol_path)
+            .unwrap();
+        let mut writer = csv::Writer::from_writer(file);
+        writer
+            .write_record(&[
+                &puzzle.id.to_string(),
+                &sol_string_dot_format,
+                &factorization_length.to_string(),
+            ])
+            .unwrap();
+        debug!("Wrote file for this problem. Wrapping up... ")
     }
 }

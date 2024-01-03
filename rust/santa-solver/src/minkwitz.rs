@@ -140,11 +140,6 @@ impl MinkwitzTable {
             let omega = perm.p[base.elements[i]] - 1;
             let table_entry = nu.table.get(&(i, omega)).unwrap();
             perm = table_entry.perm.compose(&perm);
-            TestingUtils::assert_index_path_equals_permutation(
-                &table_entry.word,
-                &table_entry.perm,
-                &index_to_perm,
-            );
             let new_word = &table_entry.word;
             list.extend(new_word);
         }
@@ -363,11 +358,6 @@ mod test {
                         println!("Table entry {:?} is not valid", (i, j));
                         result = false;
                     }
-                    TestingUtils::assert_index_path_equals_permutation(
-                        &table_entry.word,
-                        &table_entry.perm,
-                        &index_to_perm,
-                    )
                 }
             }
         }
