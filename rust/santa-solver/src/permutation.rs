@@ -1,9 +1,10 @@
 use crate::groups::DepthLimitedPermutationGroupIterator;
 use log::debug;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Permutation {
     pub p: Vec<usize>,
 }

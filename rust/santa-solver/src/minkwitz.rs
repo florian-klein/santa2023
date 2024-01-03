@@ -1,20 +1,21 @@
 use crate::{groups::PermutationGroupIterator, testing_utils::TestingUtils};
 use log::debug;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::permutation::Permutation;
 #[derive(Debug)]
 
-struct MinkwitzTable {
+pub struct MinkwitzTable {
     table: HashMap<(usize, usize), String>,
 }
 
 #[derive(Clone, Debug)]
-struct GroupBase {
+pub struct GroupBase {
     elements: Vec<usize>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct PermAndWord {
     perm: Permutation,
     word: Vec<usize>,
@@ -22,18 +23,18 @@ struct PermAndWord {
 }
 
 #[derive(Debug)]
-struct GroupGen {
+pub struct GroupGen {
     name: String,
     perm: Permutation,
 }
 
 #[derive(Debug)]
-struct GroupGens {
+pub struct GroupGens {
     elements: Vec<GroupGen>,
 }
 
-#[derive(Debug)]
-struct TransTable {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TransTable {
     table: HashMap<(usize, usize), PermAndWord>,
 }
 
@@ -53,6 +54,12 @@ impl GroupGens {
     }
 }
 
+impl GroupBase {
+    pub fn new(elements: Vec<usize>) -> Self {
+        GroupBase { elements }
+    }
+}
+
 impl PermAndWord {
     pub fn new(perm: Permutation, word: Vec<usize>) -> Self {
         PermAndWord {
@@ -65,7 +72,11 @@ impl PermAndWord {
         let mut inverse_word = self.word.clone();
         inverse_word.reverse();
         for i in 0..inverse_word.len() {
-            inverse_word[i] = (base_length / 2 + inverse_word[i]) % base_length;
+            if inverse_word[i] % 2 == 0 {
+                inverse_word[i] += 1;
+            } else {
+                inverse_word[i] -= 1;
+            }
         }
         PermAndWord {
             perm: self.perm.inverse(),
@@ -386,17 +397,17 @@ mod test {
         let perm2_inv = perm2.inverse();
 
         let index_to_gen = vec![
-            perm1.clone(),
-            perm2.clone(),
             perm1_inv.clone(),
+            perm1.clone(),
             perm2_inv.clone(),
+            perm2.clone(),
         ];
 
         let gen1 = super::GroupGen::new("a".to_string(), perm1);
         let gen2 = super::GroupGen::new("b".to_string(), perm2);
         let gen1_inv = super::GroupGen::new("a_inv".to_string(), perm1_inv);
         let gen2_inv = super::GroupGen::new("b_inv".to_string(), perm2_inv);
-        let gens = super::GroupGens::new(vec![gen1, gen2, gen1_inv, gen2_inv]);
+        let gens = super::GroupGens::new(vec![gen1_inv, gen1, gen2_inv, gen2]);
         // 2) Create Base
         let base = super::GroupBase {
             elements: vec![0, 1, 2, 3, 4, 5, 6, 7],
@@ -422,19 +433,14 @@ mod test {
         let perm1_inv = perm1.inverse();
         let perm2_inv = perm2.inverse();
 
-        let index_to_gen = vec![
-            perm1.clone(),
-            perm2.clone(),
-            perm1_inv.clone(),
-            perm2_inv.clone(),
-        ];
+        let index_to_gen = vec![perm1_inv.clone(), perm1.clone(), perm2_inv.clone()];
 
         let gen1 = super::GroupGen::new("a".to_string(), perm1.clone());
         let gen2 = super::GroupGen::new("b".to_string(), perm2.clone());
         let gen1_inv = super::GroupGen::new("-a".to_string(), perm1_inv);
         let gen2_inv = super::GroupGen::new("-b".to_string(), perm2_inv);
 
-        let gens = super::GroupGens::new(vec![gen1, gen2, gen1_inv, gen2_inv]);
+        let gens = super::GroupGens::new(vec![gen1_inv, gen1, gen2_inv, gen2]);
         let base = super::GroupBase {
             elements: vec![0, 1, 2, 3, 4, 5, 6, 7],
         };
