@@ -202,6 +202,7 @@ mod permutation_group_iterator_tests {
 mod depth_limited_permutation_group_iterator_tests {
     use super::*;
     use crate::permutation::Permutation;
+    use crate::testing_utils::TestingUtils;
 
     #[test]
     fn test_depth_limited_permutation_group_iterator() {

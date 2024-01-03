@@ -416,7 +416,12 @@ mod test {
         let perm1_inv = perm1.inverse();
         let perm2_inv = perm2.inverse();
 
-        let index_to_gen = vec![perm1_inv.clone(), perm1.clone(), perm2_inv.clone()];
+        let index_to_gen = vec![
+            perm1_inv.clone(),
+            perm1.clone(),
+            perm2_inv.clone(),
+            perm2.clone(),
+        ];
 
         let gen1 = super::GroupGen::new("a".to_string(), perm1.clone());
         let gen2 = super::GroupGen::new("b".to_string(), perm2.clone());
