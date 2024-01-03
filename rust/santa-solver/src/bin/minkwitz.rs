@@ -3,7 +3,7 @@ use santa_solver_lib::minkwitz;
 use santa_solver_lib::minkwitz::TransTable;
 use santa_solver_lib::permutation;
 use santa_solver_lib::permutation::PermutationPath;
-use santa_solver_lib::puzzle;
+use santa_solver_lib::puzzle::{self, PuzzleType};
 use std::fs::OpenOptions;
 use std::path::Path;
 fn create_sgs_table_wrapper(
@@ -21,7 +21,6 @@ fn create_sgs_table_wrapper(
 
 fn main() {
     env_logger::init();
-
     let args: Vec<String> = std::env::args().collect();
     let solution_path = "./../../data/solutions/";
     let puzzle_info_path = if args.len() > 2 {
@@ -48,6 +47,16 @@ fn main() {
             .len()
             != puzzle.initial_state.len()
         {
+            continue;
+        }
+        let mut should_continue = false;
+        for i in 0..34 {
+            if puzzle.puzzle_type == PuzzleType::CUBE(i) {
+                should_continue = true;
+                break;
+            }
+        }
+        if should_continue {
             continue;
         }
         info!(
