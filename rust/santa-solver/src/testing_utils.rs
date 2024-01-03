@@ -173,6 +173,8 @@ impl TestingUtils {
             println!("path: {:?}", path);
             println!("result: {:?}", result);
             println!("perm: {:?}", perm);
+            let composed = perm.compose(&result);
+            println!("composed: {:?}", composed);
         }
         assert!(result == *perm);
     }
