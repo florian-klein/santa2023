@@ -3,7 +3,6 @@ use crate::permutation::{Permutation, PermutationIndex, PermutationInfo, Permuta
 use crate::testing_utils::TestingUtils;
 use log::{debug, info, warn};
 use std::collections::{HashMap, HashSet};
-use std::num;
 
 fn to_2_cycle(p: &PermutationInfo) -> Vec<Vec<usize>> {
     let cycles = &p.cycles; // disjoint cycles of arbitrary length

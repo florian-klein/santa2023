@@ -149,7 +149,7 @@ impl Permutation {
         result
     }
 
-    pub fn compose_in_place(&mut self, other: &Permutation) {
+    pub fn compose_in_place(&mut self, _other: &Permutation) {
         todo!();
     }
 

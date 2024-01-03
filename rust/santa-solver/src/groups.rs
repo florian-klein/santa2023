@@ -1,5 +1,4 @@
 use crate::permutation::{Permutation, PermutationIndex, PermutationPath};
-use crate::testing_utils::TestingUtils;
 use log::error;
 use log::info;
 use std::collections::HashMap;

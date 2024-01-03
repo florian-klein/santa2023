@@ -1,4 +1,4 @@
-use crate::{groups::PermutationGroupIterator, testing_utils::TestingUtils};
+use crate::groups::PermutationGroupIterator;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -7,25 +7,25 @@ use crate::permutation::Permutation;
 #[derive(Debug)]
 
 pub struct MinkwitzTable {
-    table: HashMap<(usize, usize), String>,
+    pub table: HashMap<(usize, usize), String>,
 }
 
 #[derive(Clone, Debug)]
 pub struct GroupBase {
-    elements: Vec<usize>,
+    pub elements: Vec<usize>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-struct PermAndWord {
-    perm: Permutation,
-    word: Vec<usize>,
+pub struct PermAndWord {
+    pub perm: Permutation,
+    pub word: Vec<usize>,
     pub news: bool,
 }
 
 #[derive(Debug)]
 pub struct GroupGen {
-    name: String,
-    perm: Permutation,
+    pub name: String,
+    pub perm: Permutation,
 }
 
 #[derive(Debug)]
@@ -35,7 +35,7 @@ pub struct GroupGens {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TransTable {
-    table: HashMap<(usize, usize), PermAndWord>,
+    pub table: HashMap<(usize, usize), PermAndWord>,
 }
 
 impl GroupGen {
@@ -68,7 +68,7 @@ impl PermAndWord {
             news: true,
         }
     }
-    pub fn get_inverse(&self, base_length: usize) -> Self {
+    pub fn get_inverse(&self) -> Self {
         let mut inverse_word = self.word.clone();
         inverse_word.reverse();
         for i in 0..inverse_word.len() {
@@ -203,7 +203,7 @@ impl MinkwitzTable {
         return mu_table;
     }
 
-    fn is_table_full(n: usize, _gens: &GroupGens, _mu_table: &TransTable) -> bool {
+    fn is_table_full(_n: usize, _gens: &GroupGens, _mu_table: &TransTable) -> bool {
         return false;
     }
 
@@ -215,7 +215,7 @@ impl MinkwitzTable {
         mu_table: &mut TransTable,
     ) -> PermAndWord {
         let j = t.perm.p[base.elements[i]] - 1;
-        let t_inv = t.get_inverse(gens.elements.len());
+        let t_inv = t.get_inverse();
         let mut result = PermAndWord::identity(gens.elements[0].perm.len());
         // Let x = g(k_{i+1}) \in O_i. Do we have an entry for B_i(x)?
         if let Some(table_entry) = mu_table.get(&(i, j)) {
@@ -255,7 +255,6 @@ impl MinkwitzTable {
         limit: usize,
         mu_table: &mut TransTable,
     ) -> () {
-        let mut t = PermAndWord::identity(gens.elements[0].perm.len());
         for j in 0..base.elements.len() {
             // iterate over jth row
             for x in 0..base.elements.len() {
@@ -266,7 +265,7 @@ impl MinkwitzTable {
                         let x_elm = x_elm.unwrap();
                         let y_elm = y_elm.unwrap();
                         if x_elm.news || y_elm.news {
-                            t = y_elm.compose(&x_elm);
+                            let t = y_elm.compose(&x_elm);
                             Self::one_round(gens, base, limit, j, mu_table, t);
                         }
                     }
@@ -281,7 +280,7 @@ impl MinkwitzTable {
     }
 
     pub fn fill_orbits(
-        gens: &GroupGens,
+        _gens: &GroupGens,
         base: &GroupBase,
         limit: usize,
         mu_table: &mut TransTable,
@@ -302,7 +301,7 @@ impl MinkwitzTable {
                     if !x.is_some() {
                         continue;
                     }
-                    let x1 = x.unwrap().get_inverse(gens.elements.len());
+                    let x1 = x.unwrap().get_inverse();
                     let orbit_x: Vec<usize> =
                         orbit.iter().map(|it| x.unwrap().perm.p[*it] - 1).collect();
                     let new_pts: Vec<usize> = orbit_x
@@ -325,14 +324,8 @@ impl MinkwitzTable {
 }
 
 mod test {
-    use super::MinkwitzTable;
-    use crate::{permutation::Permutation, testing_utils::TestingUtils};
-
-    fn is_valid_sgs(
-        tt: &super::TransTable,
-        base: &super::GroupBase,
-        index_to_perm: &Vec<Permutation>,
-    ) {
+    #[allow(dead_code)]
+    fn is_valid_sgs(tt: &super::TransTable, base: &super::GroupBase) {
         let mut result = true;
         for i in 0..base.elements.len() {
             let p = tt.get(&(i, i)).unwrap().perm.clone();
@@ -366,8 +359,8 @@ mod test {
 
     #[test]
     fn test_group_gens() {
-        let perm1 = Permutation::parse_permutation_from_cycle("(1,2)", 3);
-        let perm2 = Permutation::parse_permutation_from_cycle("(2,3)", 3);
+        let perm1 = super::Permutation::parse_permutation_from_cycle("(1,2)", 3);
+        let perm2 = super::Permutation::parse_permutation_from_cycle("(2,3)", 3);
         let gen1 = super::GroupGen::new("a".to_string(), perm1.clone());
         assert_eq!(gen1.name, "a".to_string());
         assert_eq!(gen1.perm, perm1);
@@ -381,8 +374,8 @@ mod test {
     #[test]
     fn test_generate_minkwitz_table() {
         // 1) Create Generating Set
-        let perm1 = Permutation::parse_permutation_from_cycle("(1,5,7)(2,6,8)", 8);
-        let perm2 = Permutation::parse_permutation_from_cycle("(1,5)(3,4,8,2)", 8);
+        let perm1 = super::Permutation::parse_permutation_from_cycle("(1,5,7)(2,6,8)", 8);
+        let perm2 = super::Permutation::parse_permutation_from_cycle("(1,5)(3,4,8,2)", 8);
         let perm1_inv = perm1.inverse();
         let perm2_inv = perm2.inverse();
 
@@ -402,7 +395,7 @@ mod test {
         let base = super::GroupBase {
             elements: vec![0, 1, 2, 3, 4, 5, 6, 7],
         };
-        let tt = MinkwitzTable::build_short_word_sgs(&gens, &base, 100, 10, 1000);
+        let tt = super::MinkwitzTable::build_short_word_sgs(&gens, &base, 100, 10, 1000);
         for i in 0..base.elements.len() {
             for j in 0..base.elements.len() {
                 if i == j {
@@ -413,13 +406,13 @@ mod test {
                 }
             }
         }
-        is_valid_sgs(&tt, &base, &index_to_gen);
+        is_valid_sgs(&tt, &base);
     }
 
     #[test]
     fn test_factorize_m() {
-        let perm1 = Permutation::parse_permutation_from_cycle("(1,5,7)(2,6,8)", 8);
-        let perm2 = Permutation::parse_permutation_from_cycle("(1,5)(3,4,8,2)", 8);
+        let perm1 = super::Permutation::parse_permutation_from_cycle("(1,5,7)(2,6,8)", 8);
+        let perm2 = super::Permutation::parse_permutation_from_cycle("(1,5)(3,4,8,2)", 8);
         let perm1_inv = perm1.inverse();
         let perm2_inv = perm2.inverse();
 
@@ -434,14 +427,18 @@ mod test {
         let base = super::GroupBase {
             elements: vec![0, 1, 2, 3, 4, 5, 6, 7],
         };
-        let tt = MinkwitzTable::build_short_word_sgs(&gens, &base, 100, 10, 1000);
-        is_valid_sgs(&tt, &base, &index_to_gen);
+        let tt = super::MinkwitzTable::build_short_word_sgs(&gens, &base, 100, 10, 1000);
+        is_valid_sgs(&tt, &base);
         for elm in &tt.table {
             println!("Table entry {:?} is {:?}", elm.0, elm.1);
         }
         let target = perm1.compose(&perm2);
-        let fact = MinkwitzTable::factorize_minkwitz(&gens, &base, &tt, &target);
-        TestingUtils::assert_index_path_equals_permutation(&fact, &target, &index_to_gen);
+        let fact = super::MinkwitzTable::factorize_minkwitz(&gens, &base, &tt, &target);
+        crate::testing_utils::TestingUtils::assert_index_path_equals_permutation(
+            &fact,
+            &target,
+            &index_to_gen,
+        );
         println!("Factorization: {:?}", fact);
     }
 }

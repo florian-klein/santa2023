@@ -23,7 +23,7 @@ pub fn find_target_c_cycle_in_conjugated_group(
         .map(|x| x.permutation.clone())
         .collect();
     let generator_iterator = DepthLimitedPermutationGroupIterator::new(&gens, 10000);
-    for (gen_perm, _gen_path) in generator_iterator {
+    for (_, _gen_path) in generator_iterator {
         if counter % 10000 == 0 {
             debug!(
                 "Searching for target c-cycle. Group elements tried: {:?}",

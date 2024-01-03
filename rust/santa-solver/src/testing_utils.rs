@@ -2,7 +2,6 @@ use crate::permutation::Permutation;
 use crate::permutation::PermutationIndex;
 use crate::puzzle;
 use crate::puzzle::PuzzleType;
-use log::debug;
 use std::collections::HashMap;
 pub struct TestingUtils {}
 
