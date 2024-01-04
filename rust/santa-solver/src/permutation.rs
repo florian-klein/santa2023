@@ -53,14 +53,15 @@ impl PermutationPath {
     }
 
     pub fn to_string(&self, gen_to_str: &Vec<String>) -> String {
-        let result = self
+        let mut result = self
             .arr
             .clone()
             .into_iter()
             .map(|i| gen_to_str[i].clone())
-            .collect::<Vec<_>>()
-            .join(".");
-        result
+            .collect::<Vec<_>>();
+        // reverse the order
+        result.reverse();
+        result.join(".")
     }
 }
 

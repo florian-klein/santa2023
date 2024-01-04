@@ -15,7 +15,7 @@ fn create_sgs_table_wrapper(
         "Creating new SGS table for puzzle_type {:?}",
         puzzle.puzzle_type,
     );
-    let sgs_table = minkwitz::MinkwitzTable::build_short_word_sgs(&gens, &base, 1000, 100, 100);
+    let sgs_table = minkwitz::MinkwitzTable::build_short_word_sgs(&gens, &base, 1500, 100, 100);
     return sgs_table;
 }
 
@@ -38,7 +38,6 @@ fn main() {
     debug!("Loading puzzle data...");
     let puzzles_info = puzzle::load_puzzle_info(puzzle_info_path).unwrap();
     let puzzles = puzzle::load_puzzles(puzzles_path, &puzzles_info).unwrap();
-
     for puzzle in puzzles {
         if puzzle
             .initial_state
@@ -56,6 +55,12 @@ fn main() {
                 break;
             }
         }
+        // if puzzle.puzzle_type == PuzzleType::GLOBE(3, 33) {
+        //     should_continue = true;
+        // }
+        if puzzle.puzzle_type == PuzzleType::GLOBE(33, 3) {
+            should_continue = true;
+        }
         if should_continue {
             continue;
         }
@@ -63,7 +68,8 @@ fn main() {
             "Solving puzzle {} of type {:?}",
             puzzle.id, puzzle.puzzle_type,
         );
-        let target = permutation::get_permutation(&puzzle.initial_state, &puzzle.goal_state);
+        let target =
+            permutation::get_permutation(&puzzle.initial_state, &puzzle.goal_state).inverse();
         let target_info = target.compute_info();
         debug!("We want to reach following target: {:?}", target_info);
 
@@ -71,11 +77,13 @@ fn main() {
         let puzzle_info_types = puzzles_info.get(&puzzle.puzzle_type).unwrap();
         let mut gens = minkwitz::GroupGens::new(vec![]);
         let mut index_to_gen_name = vec![];
+        let mut index_to_perm: Vec<crate::permutation::Permutation> = Vec::new();
         for move_elm in puzzle_info_types.iter() {
             let new_gen =
                 minkwitz::GroupGen::new(move_elm.name.clone(), move_elm.permutation.clone());
             gens.add(new_gen);
             index_to_gen_name.push(move_elm.name.to_string());
+            index_to_perm.push(move_elm.permutation.clone());
         }
         let base_vec = (0..target.len()).collect::<Vec<_>>();
         // todo: find a better base using schreier-sims algorithm
@@ -85,6 +93,9 @@ fn main() {
         // 2) Factorize the target permutation
         let factorization =
             minkwitz::MinkwitzTable::factorize_minkwitz(&gens, &base, &sgs_table, &target);
+        if factorization.len() == 0 {
+            continue;
+        }
         let factorization_length = &factorization.len();
         info!("----------------------------------------");
         info!(
@@ -120,4 +131,5 @@ fn main() {
             .unwrap();
         debug!("Wrote file for this problem. Wrapping up... ")
     }
+    main();
 }

@@ -131,14 +131,19 @@ impl MinkwitzTable {
         target: &Permutation,
     ) -> Vec<usize> {
         let mut list: Vec<usize> = Vec::new();
-        let mut perm = target.clone().inverse();
+        let mut perm = target.inverse().clone();
         let mut index_to_perm: Vec<Permutation> = Vec::new();
         for i in 0..gens.elements.len() {
             index_to_perm.push(gens.elements[i].perm.clone());
         }
         for i in 0..base.elements.len() {
             let omega = perm.p[base.elements[i]] - 1;
-            let table_entry = nu.table.get(&(i, omega)).unwrap();
+            let table_entry = nu.table.get(&(i, omega));
+            if !table_entry.is_some() {
+                debug!("We could not find a factorization!");
+                return Vec::new();
+            }
+            let table_entry = table_entry.unwrap();
             perm = table_entry.perm.compose(&perm);
             let new_word = &table_entry.word;
             list.extend(new_word);

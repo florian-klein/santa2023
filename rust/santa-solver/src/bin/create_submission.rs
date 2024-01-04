@@ -6,7 +6,7 @@ use std::path::Path;
 fn main() {
     env_logger::init();
     let solutions_path: String = "./../../data/solutions/".to_string();
-    let submission_file_path: String = "./../../data/submission_combined.csv".to_string();
+    let submission_file_path: String = "./../../data/submission_schnack.csv".to_string();
     let new_submission_file_path: String = "./../../data/submission_new.csv".to_string();
 
     let mut overall_decrease = 0;
@@ -47,6 +47,7 @@ fn main() {
         "The overall score will be {} for the entire submission file",
         score_id_to_sol_string(&id_to_sol_string)
     );
+    info!("Find the submission file at: {}", new_submission_file_path);
     info!("-------------------");
 }
 
@@ -92,6 +93,7 @@ pub fn id_to_sol_string_to_csv(path: &String, id_to_sol_string: &HashMap<usize, 
         .open(path)
         .unwrap();
     let mut writer = csv::Writer::from_writer(file);
+    writer.write_record(&["id", "moves"]).unwrap();
     for i in 0..398 {
         if id_to_sol_string.contains_key(&i) {
             let sol_string: String = id_to_sol_string.get(&i).unwrap().to_string();
