@@ -125,7 +125,7 @@ proc buildShortWordsSGS*[N: static[int]](gens: GroupGens[N]; base: GroupBase; n,
       oneImprove(gens, base, lim, nu)
       if not isTableFull(gens, nu):
         fillOrbits(gens, base, lim, nu)
-      ,  lim = lim * 5/4
+        lim = lim * 5/4
 
   return nu
 
