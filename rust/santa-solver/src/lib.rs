@@ -5,7 +5,7 @@ pub mod ktt_solver;
 pub mod minkwitz;
 pub mod permutation;
 pub mod puzzle;
-mod schreier;
+pub mod schreier;
 mod split_cycles;
 pub mod testing_utils;
 pub mod wreath;

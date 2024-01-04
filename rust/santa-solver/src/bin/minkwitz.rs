@@ -3,7 +3,9 @@ use santa_solver_lib::minkwitz;
 use santa_solver_lib::minkwitz::TransTable;
 use santa_solver_lib::permutation;
 use santa_solver_lib::permutation::PermutationPath;
-use santa_solver_lib::puzzle::{self, PuzzleType};
+use santa_solver_lib::puzzle::{self, Move, PuzzleType};
+use santa_solver_lib::schreier::SchreierSims;
+use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::path::Path;
 fn create_sgs_table_wrapper(
@@ -19,10 +21,47 @@ fn create_sgs_table_wrapper(
     return sgs_table;
 }
 
+fn get_base_check_if_exists(
+    puzzle: &puzzle::Puzzle,
+    puzzle_info: &HashMap<PuzzleType, Vec<Move>>,
+    bases_path: &str,
+) -> Option<minkwitz::GroupBase> {
+    let base_path = format!("{}/{}.csv", bases_path, puzzle.puzzle_type);
+    let perm_size = puzzle.initial_state.len();
+    if Path::new(&base_path).exists() {
+        let base = minkwitz::GroupBase::load_from_file(&base_path);
+        info!(
+            "We found an existing base of length {:?} vs perm_size {:?} for this puzzle of type {:?}. Loading it...",
+            base.elements.len(),
+            perm_size,
+            puzzle.puzzle_type,
+        );
+        return Some(base);
+    }
+    info!(
+        "We did not find an existing base for this puzzle of type {:?}. Creating it...",
+        puzzle.puzzle_type
+    );
+    let mut index_to_perm: Vec<crate::permutation::Permutation> = Vec::new();
+    for move_elm in puzzle_info.get(&puzzle.puzzle_type).unwrap() {
+        index_to_perm.push(move_elm.permutation.clone());
+    }
+    let base_vec = SchreierSims::find_base(index_to_perm);
+    let base = minkwitz::GroupBase::new(base_vec);
+    base.write_to_file(&base_path);
+    info!(
+        "Base of length {:?} vs. perm_size {:?} created and written to file.",
+        base.elements.len(),
+        perm_size
+    );
+    return Some(base);
+}
+
 fn main() {
     env_logger::init();
     let args: Vec<String> = std::env::args().collect();
     let solution_path = "./../../data/solutions/";
+    let bases_storage_path = "./../../data/bases/";
     let puzzle_info_path = if args.len() > 2 {
         &args[2]
     } else {
@@ -55,9 +94,6 @@ fn main() {
                 break;
             }
         }
-        // if puzzle.puzzle_type == PuzzleType::GLOBE(3, 33) {
-        //     should_continue = true;
-        // }
         if puzzle.puzzle_type == PuzzleType::GLOBE(33, 3) {
             should_continue = true;
         }
@@ -77,17 +113,15 @@ fn main() {
         let puzzle_info_types = puzzles_info.get(&puzzle.puzzle_type).unwrap();
         let mut gens = minkwitz::GroupGens::new(vec![]);
         let mut index_to_gen_name = vec![];
-        let mut index_to_perm: Vec<crate::permutation::Permutation> = Vec::new();
+        // let mut index_to_perm: Vec<crate::permutation::Permutation> = Vec::new();
         for move_elm in puzzle_info_types.iter() {
             let new_gen =
                 minkwitz::GroupGen::new(move_elm.name.clone(), move_elm.permutation.clone());
             gens.add(new_gen);
             index_to_gen_name.push(move_elm.name.to_string());
-            index_to_perm.push(move_elm.permutation.clone());
+            // index_to_perm.push(move_elm.permutation.clone());
         }
-        let base_vec = (0..target.len()).collect::<Vec<_>>();
-        // todo: find a better base using schreier-sims algorithm
-        let base = minkwitz::GroupBase::new(base_vec);
+        let base = get_base_check_if_exists(&puzzle, &puzzles_info, bases_storage_path).unwrap();
         let sgs_table: TransTable = create_sgs_table_wrapper(&puzzle, &gens, &base);
 
         // 2) Factorize the target permutation

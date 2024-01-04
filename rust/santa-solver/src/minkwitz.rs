@@ -2,6 +2,8 @@ use crate::groups::PermutationGroupIterator;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fs;
+use std::io::{self, BufRead};
 
 use crate::permutation::Permutation;
 #[derive(Debug)]
@@ -57,6 +59,32 @@ impl GroupGens {
 impl GroupBase {
     pub fn new(elements: Vec<usize>) -> Self {
         GroupBase { elements }
+    }
+    pub fn load_from_file(path: &str) -> Self {
+        let file = fs::File::open(path).unwrap();
+        // Create a buffered reader to read lines
+        let reader = io::BufReader::new(file);
+        let Some(Ok(first_line)) = reader.lines().next() else {
+            panic!("Could not read base string of file");
+        };
+        let base: Vec<usize> = first_line
+            .split(".")
+            .map(|x| x.parse::<usize>().unwrap())
+            .collect();
+        GroupBase { elements: base }
+    }
+
+    pub fn write_to_file(&self, path: &str) {
+        let mut wtr = csv::Writer::from_path(path).unwrap();
+        let mut base_str = String::new();
+        for i in 0..self.elements.len() {
+            base_str.push_str(&self.elements[i].to_string());
+            if i < self.elements.len() - 1 {
+                base_str.push_str(".");
+            }
+        }
+        wtr.write_record(&[base_str]).unwrap();
+        wtr.flush().unwrap();
     }
 }
 
