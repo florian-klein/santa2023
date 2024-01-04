@@ -329,10 +329,13 @@ impl MinkwitzTable {
 }
 
 mod test {
+    use crate::permutation::Permutation;
+
     #[allow(dead_code)]
     fn is_valid_sgs(tt: &super::TransTable, base: &super::GroupBase) {
         let mut result = true;
         for i in 0..base.elements.len() {
+            println!("Checking row {}", i);
             let p = tt.get(&(i, i)).unwrap().perm.clone();
             if !p.is_identity() {
                 println!("p {:?} is not identity", (i, i));
@@ -450,5 +453,84 @@ mod test {
             &index_to_gen,
         );
         println!("Factorization: {:?}", fact);
+    }
+
+    #[test]
+    fn test_rubik_small_and_base_not_full() {
+        let perm_f = super::Permutation::parse_permutation_from_cycle(
+            "(9,10,12,11)(3,13,22,8)(4,15,21,6)",
+            24,
+        );
+        let perm_b = super::Permutation::parse_permutation_from_cycle(
+            "(17,18,20,19)(1,7,24,14)(2,5,23,16)",
+            24,
+        );
+        let perm_u = super::Permutation::parse_permutation_from_cycle(
+            "(1,2,4,3)(9,5,17,13)(10,6,18,14)",
+            24,
+        );
+        let perm_d = super::Permutation::parse_permutation_from_cycle(
+            "(21,22,24,23)(11,15,19,7)(12,16,20,8)",
+            24,
+        );
+        let perm_l = super::Permutation::parse_permutation_from_cycle(
+            "(5,6,8,7)(9,21,20,1)(11,23,18,3)",
+            24,
+        );
+        let perm_r = super::Permutation::parse_permutation_from_cycle(
+            "(13,14,16,15)(10,2,19,22)(12,4,17,24)",
+            24,
+        );
+        let perm_f_inv = perm_f.inverse();
+        let perm_b_inv = perm_b.inverse();
+        let perm_u_inv = perm_u.inverse();
+        let perm_d_inv = perm_d.inverse();
+        let perm_l_inv = perm_l.inverse();
+        let perm_r_inv = perm_r.inverse();
+
+        let index_to_gen = vec![
+            perm_f_inv.clone(),
+            perm_f.clone(),
+            perm_b_inv.clone(),
+            perm_b.clone(),
+            perm_u_inv.clone(),
+            perm_u.clone(),
+            perm_d_inv.clone(),
+            perm_d.clone(),
+            perm_l_inv.clone(),
+            perm_l.clone(),
+            perm_r_inv.clone(),
+            perm_r.clone(),
+        ];
+
+        let gen_f = super::GroupGen::new("F".to_string(), perm_f.clone());
+        let gen_b = super::GroupGen::new("B".to_string(), perm_b.clone());
+        let gen_u = super::GroupGen::new("U".to_string(), perm_u.clone());
+        let gen_d = super::GroupGen::new("D".to_string(), perm_d.clone());
+        let gen_l = super::GroupGen::new("L".to_string(), perm_l.clone());
+        let gen_r = super::GroupGen::new("R".to_string(), perm_r.clone());
+        let gen_f_inv = super::GroupGen::new("F_inv".to_string(), perm_f_inv);
+        let gen_b_inv = super::GroupGen::new("B_inv".to_string(), perm_b_inv);
+        let gen_u_inv = super::GroupGen::new("U_inv".to_string(), perm_u_inv);
+        let gen_d_inv = super::GroupGen::new("D_inv".to_string(), perm_d_inv);
+        let gen_l_inv = super::GroupGen::new("L_inv".to_string(), perm_l_inv);
+        let gen_r_inv = super::GroupGen::new("R_inv".to_string(), perm_r_inv);
+
+        let gens = super::GroupGens::new(vec![
+            gen_f_inv, gen_f, gen_b_inv, gen_b, gen_u_inv, gen_u, gen_d_inv, gen_d, gen_l_inv,
+            gen_l, gen_r_inv, gen_r,
+        ]);
+
+        let base = super::GroupBase {
+            elements: vec![0, 1, 2, 3, 20, 21, 22, 23],
+        };
+        let tt = super::MinkwitzTable::build_short_word_sgs(&gens, &base, 100, 10, 1000);
+        let target = perm_f.compose(&perm_b).compose(&perm_u).compose(&perm_d);
+        let fact = super::MinkwitzTable::factorize_minkwitz(&gens, &base, &tt, &target);
+        crate::testing_utils::TestingUtils::assert_index_path_equals_permutation(
+            &fact,
+            &target,
+            &index_to_gen,
+        );
     }
 }
