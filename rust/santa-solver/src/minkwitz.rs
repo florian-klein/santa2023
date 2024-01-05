@@ -357,7 +357,6 @@ impl MinkwitzTable {
 }
 
 mod test {
-    use crate::permutation::Permutation;
 
     #[allow(dead_code)]
     fn is_valid_sgs(tt: &super::TransTable, base: &super::GroupBase) {

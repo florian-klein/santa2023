@@ -1,11 +1,12 @@
 use log::{debug, error, info};
 use santa_solver_lib::minkwitz;
 use santa_solver_lib::minkwitz::TransTable;
-use santa_solver_lib::permutation;
 use santa_solver_lib::permutation::PermutationPath;
+use santa_solver_lib::permutation::{self, Permutation};
 use santa_solver_lib::puzzle::{self, Move, PuzzleType};
 use santa_solver_lib::schreier::SchreierSims;
-use std::collections::HashMap;
+use santa_solver_lib::testing_utils::TestingUtils;
+use std::collections::{HashMap, HashSet};
 use std::fs::OpenOptions;
 use std::path::Path;
 fn create_sgs_table_wrapper(
@@ -17,7 +18,7 @@ fn create_sgs_table_wrapper(
         "Creating new SGS table for puzzle_type {:?}",
         puzzle.puzzle_type,
     );
-    let sgs_table = minkwitz::MinkwitzTable::build_short_word_sgs(&gens, &base, 1500, 100, 100);
+    let sgs_table = minkwitz::MinkwitzTable::build_short_word_sgs(&gens, &base, 1000, 100, 100);
     return sgs_table;
 }
 
@@ -77,35 +78,25 @@ fn main() {
     debug!("Loading puzzle data...");
     let puzzles_info = puzzle::load_puzzle_info(puzzle_info_path).unwrap();
     let puzzles = puzzle::load_puzzles(puzzles_path, &puzzles_info).unwrap();
+    debug!("Loading id to target hashmap...");
+    let id_to_target: HashMap<usize, Permutation> =
+        puzzle::load_id_to_target_permutation("./../../data/target.csv").unwrap();
+    // filter irrelevant puzzles
+    let mut relevant_types: HashSet<PuzzleType> = HashSet::new();
+    relevant_types.insert(PuzzleType::CUBE(4));
     for puzzle in puzzles {
-        if puzzle
-            .initial_state
-            .iter()
-            .collect::<std::collections::HashSet<_>>()
-            .len()
-            != puzzle.initial_state.len()
-        {
-            continue;
-        }
-        let mut should_continue = false;
-        for i in 0..34 {
-            if puzzle.puzzle_type == PuzzleType::CUBE(i) {
-                should_continue = true;
-                break;
-            }
-        }
-        if puzzle.puzzle_type == PuzzleType::GLOBE(33, 3) {
-            should_continue = true;
-        }
-        if should_continue {
+        if !relevant_types.contains(&puzzle.puzzle_type) {
             continue;
         }
         info!(
             "Solving puzzle {} of type {:?}",
             puzzle.id, puzzle.puzzle_type,
         );
-        let target =
-            permutation::get_permutation(&puzzle.initial_state, &puzzle.goal_state).inverse();
+        let target_perm = id_to_target
+            .get(&puzzle.id)
+            .expect("Could not find target for this puzzle id!");
+        debug!("Target permutation: {:?}", target_perm);
+        let target = target_perm.inverse();
         let target_info = target.compute_info();
         debug!("We want to reach following target: {:?}", target_info);
 
@@ -113,15 +104,17 @@ fn main() {
         let puzzle_info_types = puzzles_info.get(&puzzle.puzzle_type).unwrap();
         let mut gens = minkwitz::GroupGens::new(vec![]);
         let mut index_to_gen_name = vec![];
-        // let mut index_to_perm: Vec<crate::permutation::Permutation> = Vec::new();
+        let mut index_to_perm: Vec<crate::permutation::Permutation> = Vec::new();
         for move_elm in puzzle_info_types.iter() {
             let new_gen =
                 minkwitz::GroupGen::new(move_elm.name.clone(), move_elm.permutation.clone());
             gens.add(new_gen);
             index_to_gen_name.push(move_elm.name.to_string());
-            // index_to_perm.push(move_elm.permutation.clone());
+            index_to_perm.push(move_elm.permutation.clone());
         }
         let base = get_base_check_if_exists(&puzzle, &puzzles_info, bases_storage_path).unwrap();
+        let base_vec: Vec<usize> = (0..puzzle.initial_state.len()).collect();
+        let base = minkwitz::GroupBase::new(base_vec);
         let sgs_table: TransTable = create_sgs_table_wrapper(&puzzle, &gens, &base);
 
         // 2) Factorize the target permutation
@@ -138,6 +131,7 @@ fn main() {
         );
         info!("Converting to String and writing to result paths...");
         info!("----------------------------------------");
+        TestingUtils::assert_index_path_equals_permutation(&factorization, &target, &index_to_perm);
         let path = PermutationPath::new(factorization);
         let sol_string_dot_format = path.to_string(&index_to_gen_name);
         let sol_path = format!("{}/{}.csv", solution_path, puzzle.id);
@@ -165,5 +159,4 @@ fn main() {
             .unwrap();
         debug!("Wrote file for this problem. Wrapping up... ")
     }
-    main();
 }

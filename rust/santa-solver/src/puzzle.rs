@@ -128,6 +128,23 @@ pub fn load_puzzle_info(
     Ok(allowed_moves)
 }
 
+pub fn load_id_to_target_permutation(
+    target_path: &str,
+) -> Result<HashMap<usize, Permutation>, Box<dyn Error>> {
+    let mut id_to_target_permutation = HashMap::new();
+    let mut target_reader = csv::Reader::from_path(target_path)?;
+    for record in target_reader.records() {
+        let record = record?;
+        let id = record[0].parse()?;
+        let target = record[1]
+            .split(',')
+            .map(|x| x.parse().unwrap())
+            .collect::<Vec<usize>>();
+        id_to_target_permutation.insert(id, Permutation::new(target));
+    }
+    Ok(id_to_target_permutation)
+}
+
 pub fn load_puzzles(
     puzzles_path: &str,
     allowed_moves: &HashMap<PuzzleType, Vec<Move>>,
