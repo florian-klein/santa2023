@@ -1,5 +1,6 @@
+use crate::groups;
+use crate::minkwitz::PermAndWord;
 use crate::permutation::Permutation;
-use crate::{groups, permutation::PermutationPath};
 use rand;
 use rust_schreier::perm::Perm;
 use rust_schreier::schreier;
@@ -33,22 +34,27 @@ impl SchreierSims {
      * The function is_subgroup_member should return true if the element is a subgroup member and false otherwise.
      */
     pub fn get_coset_traversal(
-        gens: &HashMap<Permutation, PermutationPath>,
-        is_subgroup_member: &fn(&Permutation) -> bool,
-    ) -> Vec<(Permutation, PermutationPath)> {
-        let mut coset_traversal: Vec<(Permutation, PermutationPath)> = vec![];
+        gens: &HashSet<PermAndWord>,
+        is_subgroup_member: &fn(&PermAndWord) -> bool,
+    ) -> Vec<PermAndWord> {
+        let mut coset_traversal: Vec<PermAndWord> = vec![];
         let gens_depr: HashMap<Permutation, usize> = gens
             .iter()
-            .map(|(perm, path)| (perm.clone(), path.arr[0]))
+            .map(|perm_word| (perm_word.perm.clone(), perm_word.word[0]))
             .collect();
         let group_generator = groups::PermutationGroupIterator::new(&gens_depr);
         for (perm_path, perm) in group_generator {
-            let found_identical_coset = coset_traversal.iter().any(|(repr, path)| {
-                let group_elm = perm.compose(&repr.inverse());
+            let perm_and_word = PermAndWord {
+                perm: perm.clone(),
+                word: perm_path.arr.clone(),
+                news: true,
+            };
+            let found_identical_coset = coset_traversal.iter().any(|repr| {
+                let group_elm = perm_and_word.compose(&repr.get_inverse());
                 return is_subgroup_member(&group_elm);
             });
             if !found_identical_coset {
-                coset_traversal.push((perm, perm_path));
+                coset_traversal.push(perm_and_word);
             }
         }
         return coset_traversal;
@@ -60,18 +66,18 @@ impl SchreierSims {
      * The coset traversal should be a list of coset representatives.
      */
     pub fn get_subgroup_gens_from_coset_traversal(
-        coset_traversal: &Vec<(Permutation, PermutationPath)>,
-        current_gens: &HashMap<Permutation, PermutationPath>,
-        is_subgroup_member: &fn(&Permutation) -> bool,
-    ) -> HashMap<Permutation, PermutationPath> {
-        let mut subgroup_gens: HashMap<Permutation, PermutationPath> = HashMap::new();
-        for (t, t_path) in coset_traversal {
-            for s in current_gens.keys() {
+        coset_traversal: &Vec<PermAndWord>,
+        current_gens: &HashSet<PermAndWord>,
+        is_subgroup_member: &fn(&PermAndWord) -> bool,
+    ) -> HashSet<PermAndWord> {
+        let mut subgroup_gens: HashSet<PermAndWord> = HashSet::new();
+        for t in coset_traversal {
+            for s in current_gens {
                 let perm = s.compose(&t);
-                let mut perm_representative: Option<Permutation> = None;
+                let mut perm_representative: Option<PermAndWord> = None;
                 // find coset representative for perm
-                for (t2, t2_path) in coset_traversal {
-                    let perm2 = t2.compose(&perm.inverse());
+                for t2 in coset_traversal {
+                    let perm2 = t2.compose(&perm.get_inverse());
                     if is_subgroup_member(&perm2) {
                         perm_representative = Some(t2.clone());
                         break;
@@ -83,10 +89,10 @@ impl SchreierSims {
                     panic!("Each element should have a coset representative!");
                 }
                 let perm_representative = perm_representative.unwrap();
-                let perm = perm.compose(&perm_representative.inverse());
+                let perm = perm.compose(&perm_representative.get_inverse());
                 println!("perm: {:?}", perm);
-                if !subgroup_gens.contains_key(&perm.inverse()) {
-                    subgroup_gens.insert(perm, PermutationPath::new(vec![0]));
+                if !subgroup_gens.contains(&perm.get_inverse()) {
+                    subgroup_gens.insert(perm);
                 }
             }
         }
@@ -98,9 +104,9 @@ impl SchreierSims {
      * returns a list of generators that generate the intersection of all subgroups.
      */
     pub fn relaxed_schreier_sims(
-        initial_gens: HashMap<Permutation, PermutationPath>,
-        subgroup_testing_functions: Vec<fn(&Permutation) -> bool>,
-    ) -> HashMap<Permutation, PermutationPath> {
+        initial_gens: HashSet<PermAndWord>,
+        subgroup_testing_functions: Vec<fn(&PermAndWord) -> bool>,
+    ) -> HashSet<PermAndWord> {
         let mut current_gens = initial_gens;
         for subgroup_testing_function in &subgroup_testing_functions {
             let coset_traversal =
@@ -168,20 +174,18 @@ mod tests {
     fn test_coset_traversal() {
         let g1 = Permutation::parse_permutation_from_cycle("(1,2)", 3);
         let g2 = Permutation::parse_permutation_from_cycle("(1,2,3)", 3);
-        let is_in_subgroup: fn(&Permutation) -> bool = |perm| {
+        let is_in_subgroup: fn(&PermAndWord) -> bool = |perm| {
             let sub_elm1 = Permutation::parse_permutation_from_cycle("(1,2,3)", 3);
             let sub_elm2 = Permutation::parse_permutation_from_cycle("(1,3,2)", 3);
             let sub_elm3 = Permutation::parse_permutation_from_cycle("(1)", 3);
             let subgroup: Vec<Permutation> = vec![sub_elm1, sub_elm2, sub_elm3];
-            return subgroup.iter().any(|sub_elm| sub_elm == perm);
+            return subgroup.iter().any(|sub_elm| sub_elm == &perm.perm);
         };
 
-        let subgroup_gens: HashMap<Permutation, PermutationPath> = vec![
-            (g1, PermutationPath::new(vec![0])),
-            (g2, PermutationPath::new(vec![1])),
-        ]
-        .into_iter()
-        .collect();
+        let subgroup_gens: HashSet<PermAndWord> =
+            vec![PermAndWord::new(g1, vec![0]), PermAndWord::new(g2, vec![1])]
+                .into_iter()
+                .collect();
 
         let coset_traversal = SchreierSims::get_coset_traversal(&subgroup_gens, &is_in_subgroup);
         assert_eq!(coset_traversal.len(), 2);
@@ -191,9 +195,9 @@ mod tests {
     fn test_coset_traversal_fix_certain() {
         let g1 = Permutation::parse_permutation_from_cycle("(1,2)", 3);
         let g2 = Permutation::parse_permutation_from_cycle("(1,2,3)", 3);
-        let indices_interchangeable: fn(&Permutation) -> bool = |perm| {
+        let indices_interchangeable: fn(&PermAndWord) -> bool = |perm| {
             let interchangeable_indices: HashSet<usize> = vec![0, 1].into_iter().collect();
-            let perm = &perm.p;
+            let perm = &perm.perm.p;
             for index in &interchangeable_indices {
                 if !interchangeable_indices.contains(&(perm[*index] - 1)) {
                     return false;
@@ -201,12 +205,10 @@ mod tests {
             }
             return true;
         };
-        let subgroup_gens: HashMap<Permutation, PermutationPath> = vec![
-            (g1, PermutationPath::new(vec![0])),
-            (g2, PermutationPath::new(vec![1])),
-        ]
-        .into_iter()
-        .collect();
+        let subgroup_gens: HashSet<PermAndWord> =
+            vec![PermAndWord::new(g1, vec![0]), PermAndWord::new(g2, vec![1])]
+                .into_iter()
+                .collect();
         let coset_traversal =
             SchreierSims::get_coset_traversal(&subgroup_gens, &indices_interchangeable);
         // check that every index in the generated coset traversal is interchangeable
@@ -217,20 +219,18 @@ mod tests {
     fn test_get_subgroup_gens_from_coset_traversal_small() {
         let g1 = Permutation::parse_permutation_from_cycle("(1,2)", 3);
         let g2 = Permutation::parse_permutation_from_cycle("(1,2,3)", 3);
-        let is_in_subgroup: fn(&Permutation) -> bool = |perm| {
+        let is_in_subgroup: fn(&PermAndWord) -> bool = |perm| {
             let sub_elm1 = Permutation::parse_permutation_from_cycle("(1,2,3)", 3);
             let sub_elm2 = Permutation::parse_permutation_from_cycle("(1,3,2)", 3);
             let sub_elm3 = Permutation::parse_permutation_from_cycle("(1)", 3);
             let subgroup: Vec<Permutation> = vec![sub_elm1, sub_elm2, sub_elm3];
-            return subgroup.iter().any(|sub_elm| sub_elm.p == perm.p);
+            return subgroup.iter().any(|sub_elm| sub_elm.p == perm.perm.p);
         };
 
-        let subgroup_gens: HashMap<Permutation, PermutationPath> = vec![
-            (g1, PermutationPath::new(vec![0])),
-            (g2, PermutationPath::new(vec![1])),
-        ]
-        .into_iter()
-        .collect();
+        let subgroup_gens: HashSet<PermAndWord> =
+            vec![PermAndWord::new(g1, vec![0]), PermAndWord::new(g2, vec![1])]
+                .into_iter()
+                .collect();
 
         let coset_traversal = SchreierSims::get_coset_traversal(&subgroup_gens, &is_in_subgroup);
         println!("coset traversal: {:?}", coset_traversal);
@@ -242,7 +242,7 @@ mod tests {
         );
         for subgroup_gen in &subgroup_gens {
             println!("subgroup gen: {:?}", subgroup_gen);
-            assert!(is_in_subgroup(subgroup_gen.0));
+            assert!(is_in_subgroup(subgroup_gen));
         }
         assert_eq!(subgroup_gens.len(), 2);
     }
@@ -251,15 +251,9 @@ mod tests {
     fn test_get_subgroup_gens_from_coset_traversal() {
         let g1 = Permutation::parse_permutation_from_cycle("(1,2)", 3);
         let g2 = Permutation::parse_permutation_from_cycle("(1,2,3)", 3);
-        let subgroup_gens: HashMap<Permutation, PermutationPath> = vec![
-            (g1, PermutationPath::new(vec![0])),
-            (g2, PermutationPath::new(vec![1])),
-        ]
-        .into_iter()
-        .collect();
-        let indices_interchangeable: fn(&Permutation) -> bool = |perm| {
+        let indices_interchangeable: fn(&PermAndWord) -> bool = |perm| {
             let interchangeable_indices: HashSet<usize> = vec![0, 1].into_iter().collect();
-            let perm = &perm.p;
+            let perm = &perm.perm.p;
             for index in &interchangeable_indices {
                 if !interchangeable_indices.contains(&(perm[*index] - 1)) {
                     return false;
@@ -267,6 +261,10 @@ mod tests {
             }
             return true;
         };
+        let subgroup_gens: HashSet<PermAndWord> =
+            vec![PermAndWord::new(g1, vec![0]), PermAndWord::new(g2, vec![1])]
+                .into_iter()
+                .collect();
         let coset_traversal =
             SchreierSims::get_coset_traversal(&subgroup_gens, &indices_interchangeable);
         assert_eq!(coset_traversal.len(), 3);
@@ -278,7 +276,7 @@ mod tests {
         );
         for subgroup_gen in &subgroup_gens {
             println!("subgroup gen: {:?}", subgroup_gen);
-            assert!(indices_interchangeable(subgroup_gen.0));
+            assert!(indices_interchangeable(subgroup_gen));
         }
         assert_eq!(subgroup_gens.len(), 2);
     }
@@ -294,37 +292,38 @@ mod tests {
         let g3 = Permutation::parse_permutation_from_cycle("(3,4)", 6);
         let g4 = Permutation::parse_permutation_from_cycle("(4,5)", 6);
 
-        let group_gens: HashMap<Permutation, PermutationPath> = vec![
-            (g1, PermutationPath::new(vec![0])),
-            (g2, PermutationPath::new(vec![1])),
-            (g3, PermutationPath::new(vec![2])),
-            (g4, PermutationPath::new(vec![3])),
+        let group_gens: HashSet<PermAndWord> = vec![
+            PermAndWord::new(g1, vec![0]),
+            PermAndWord::new(g2, vec![2]),
+            PermAndWord::new(g3, vec![4]),
+            PermAndWord::new(g4, vec![6]),
         ]
         .into_iter()
         .collect();
-        let membership_test_1: fn(&Permutation) -> bool = |perm| {
+
+        let membership_test_1: fn(&PermAndWord) -> bool = |perm| {
             let stab_ind_1 = vec![0, 1].into_iter().collect();
-            return SchreierSims::test_indices_interchangeable(perm, &stab_ind_1);
+            return SchreierSims::test_indices_interchangeable(&perm.perm, &stab_ind_1);
         };
-        let membership_test_2: fn(&Permutation) -> bool = |perm| {
+        let membership_test_2: fn(&PermAndWord) -> bool = |perm| {
             let stab_ind_2 = vec![2, 3].into_iter().collect();
-            return SchreierSims::test_indices_interchangeable(perm, &stab_ind_2);
+            return SchreierSims::test_indices_interchangeable(&perm.perm, &stab_ind_2);
         };
-        let membership_test_3: fn(&Permutation) -> bool = |perm| {
+        let membership_test_3: fn(&PermAndWord) -> bool = |perm| {
             let stab_ind_3 = vec![4, 5].into_iter().collect();
-            return SchreierSims::test_indices_interchangeable(perm, &stab_ind_3);
+            return SchreierSims::test_indices_interchangeable(&perm.perm, &stab_ind_3);
         };
 
-        let subgroup_testing_functions: Vec<fn(&Permutation) -> bool> =
+        let subgroup_testing_functions: Vec<fn(&PermAndWord) -> bool> =
             vec![membership_test_1, membership_test_2, membership_test_3];
 
         let subgroup_gens =
             SchreierSims::relaxed_schreier_sims(group_gens, subgroup_testing_functions);
         for subgroup_gen in &subgroup_gens {
             println!("subgroup gen: {:?}", subgroup_gen);
-            assert!(membership_test_1(subgroup_gen.0));
-            assert!(membership_test_2(subgroup_gen.0));
-            assert!(membership_test_3(subgroup_gen.0));
+            assert!(membership_test_1(subgroup_gen));
+            assert!(membership_test_2(subgroup_gen));
+            assert!(membership_test_3(subgroup_gen));
         }
 
         assert_eq!(subgroup_gens.len(), 4);

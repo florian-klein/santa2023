@@ -1,3 +1,4 @@
+use crate::minkwitz::PermAndWord;
 use crate::permutation::{Permutation, PermutationIndex, PermutationPath};
 use log::error;
 use log::info;
@@ -9,6 +10,13 @@ pub struct PermutationGroupIterator<'a> {
     visited: HashSet<Permutation>,
     queue: VecDeque<(PermutationPath, Permutation)>,
     gen_to_str: &'a HashMap<Permutation, PermutationIndex>,
+}
+
+pub struct PermutationGroupPermAndWordIterator<'a> {
+    frontier: VecDeque<PermAndWord>,
+    visited: HashSet<PermAndWord>,
+    queue: VecDeque<PermAndWord>,
+    generators: &'a HashSet<PermAndWord>,
 }
 
 pub struct DepthLimitedPermutationGroupIterator<'a> {
@@ -71,6 +79,58 @@ impl<'a> Iterator for PermutationGroupIterator<'a> {
         self.visited.insert(perm.clone());
         self.queue.push_back((element_path.clone(), perm.clone()));
         return Some((element_path, perm));
+    }
+}
+
+impl<'a> PermutationGroupPermAndWordIterator<'a> {
+    pub fn new(generators: &'a HashSet<PermAndWord>) -> Self {
+        let mut frontier = VecDeque::new();
+        let key = generators.iter().next().unwrap();
+        let identity = Permutation::identity(key.perm.len());
+        frontier.push_back(PermAndWord::new(identity.clone(), Vec::new()));
+
+        Self {
+            frontier,
+            visited: HashSet::new(),
+            queue: VecDeque::new(),
+            generators,
+        }
+    }
+}
+
+impl<'a> Iterator for PermutationGroupPermAndWordIterator<'a> {
+    type Item = PermAndWord;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        println!("Frontier: {:?}", self.frontier);
+        println!("Queue: {:?}", self.queue);
+        if self.frontier.is_empty() {
+            if !self.queue.is_empty() {
+                let perm_and_word = self.queue.pop_front().unwrap();
+                // iterate over gen_to_str keys
+                for generator in self.generators {
+                    let new_element = generator.compose(&perm_and_word);
+                    if !self.visited.contains(&new_element) {
+                        self.frontier.push_back(new_element);
+                    }
+                }
+            } else {
+                error!("Error in PermutationGroupIterator: Queue is empty");
+                return None;
+            }
+        }
+        let result = self.frontier.pop_front();
+        if self.queue.is_empty() && result.is_none() {
+            info!("PermutationGroupIterator Frontier is now empty, proceeding ...");
+            return None;
+        } else if result.is_none() {
+            return self.next();
+        }
+        let perm_and_word = result.unwrap();
+
+        self.visited.insert(perm_and_word.clone());
+        self.queue.push_back(perm_and_word.clone());
+        return Some(perm_and_word);
     }
 }
 
@@ -161,6 +221,29 @@ mod permutation_group_iterator_tests {
         for (path, perm) in iterator {
             println!("{:?} -> {}", path, perm);
         }
+    }
+
+    #[test]
+    fn test_permutation_group_iterator_perm_and_word() {
+        let generators: HashSet<PermAndWord> = vec![
+            PermAndWord::new(
+                Permutation::parse_permutation_from_cycle("(1,2)", 3),
+                vec![0],
+            ),
+            PermAndWord::new(
+                Permutation::parse_permutation_from_cycle("(2,3)", 3),
+                vec![1],
+            ),
+        ]
+        .into_iter()
+        .collect();
+        let iterator = PermutationGroupPermAndWordIterator::new(&generators);
+        let mut counter = 0;
+        for perm_and_word in iterator {
+            println!("{:?}", perm_and_word);
+            counter += 1;
+        }
+        assert_eq!(counter, 6);
     }
 
     #[test]

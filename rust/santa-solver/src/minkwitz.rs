@@ -3,6 +3,7 @@ use log::debug;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
+use std::hash::{Hash, Hasher};
 use std::io::{self, BufRead};
 
 use crate::permutation::Permutation;
@@ -134,6 +135,20 @@ impl PermAndWord {
         self.news = news;
     }
 }
+
+impl Hash for PermAndWord {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.perm.hash(state);
+    }
+}
+
+impl PartialEq for PermAndWord {
+    fn eq(&self, other: &Self) -> bool {
+        self.perm == other.perm
+    }
+}
+
+impl Eq for PermAndWord {}
 
 impl TransTable {
     pub fn new() -> Self {
