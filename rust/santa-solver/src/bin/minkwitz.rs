@@ -1,11 +1,11 @@
 use log::{debug, error, info};
-use santa_solver_lib::minkwitz;
 use santa_solver_lib::minkwitz::TransTable;
 use santa_solver_lib::permutation::PermutationPath;
 use santa_solver_lib::permutation::{self, Permutation};
 use santa_solver_lib::puzzle::{self, Move, PuzzleType};
 use santa_solver_lib::schreier::SchreierSims;
 use santa_solver_lib::testing_utils::TestingUtils;
+use santa_solver_lib::{minkwitz, schreier};
 use std::collections::{HashMap, HashSet};
 use std::fs::OpenOptions;
 use std::path::Path;
@@ -18,7 +18,7 @@ fn create_sgs_table_wrapper(
         "Creating new SGS table for puzzle_type {:?}",
         puzzle.puzzle_type,
     );
-    let sgs_table = minkwitz::MinkwitzTable::build_short_word_sgs(&gens, &base, 1000, 100, 100);
+    let sgs_table = minkwitz::MinkwitzTable::build_short_word_sgs(&gens, &base, 1000, 500, 100);
     return sgs_table;
 }
 
@@ -105,23 +105,32 @@ fn main() {
         let mut gens = minkwitz::GroupGens::new(vec![]);
         let mut index_to_gen_name = vec![];
         let mut index_to_perm: Vec<crate::permutation::Permutation> = Vec::new();
+        let mut str_to_gen: HashMap<String, Permutation> = HashMap::new();
         for move_elm in puzzle_info_types.iter() {
             let new_gen =
                 minkwitz::GroupGen::new(move_elm.name.clone(), move_elm.permutation.clone());
             gens.add(new_gen);
             index_to_gen_name.push(move_elm.name.to_string());
             index_to_perm.push(move_elm.permutation.clone());
+            str_to_gen.insert(move_elm.name.clone(), move_elm.permutation.clone());
         }
-        let base = get_base_check_if_exists(&puzzle, &puzzles_info, bases_storage_path).unwrap();
+        // let base = get_base_check_if_exists(&puzzle, &puzzles_info, bases_storage_path).unwrap();
         let base_vec: Vec<usize> = (0..puzzle.initial_state.len()).collect();
         let base = minkwitz::GroupBase::new(base_vec);
         let sgs_table: TransTable = create_sgs_table_wrapper(&puzzle, &gens, &base);
 
         // 2) Factorize the target permutation
-        let factorization =
-            minkwitz::MinkwitzTable::factorize_minkwitz(&gens, &base, &sgs_table, &target);
+        let valid_indices: Vec<HashSet<usize>> =
+            schreier::SchreierSims::get_stabilizing_color_gens(&puzzle.goal_string);
+        let factorization = minkwitz::MinkwitzTable::factorize_minkwitz(
+            &gens,
+            &base,
+            &sgs_table,
+            &target,
+            &valid_indices,
+        );
         if factorization.len() == 0 {
-            continue;
+            return;
         }
         let factorization_length = &factorization.len();
         info!("----------------------------------------");
@@ -131,9 +140,13 @@ fn main() {
         );
         info!("Converting to String and writing to result paths...");
         info!("----------------------------------------");
-        TestingUtils::assert_index_path_equals_permutation(&factorization, &target, &index_to_perm);
         let path = PermutationPath::new(factorization);
         let sol_string_dot_format = path.to_string(&index_to_gen_name);
+        debug!(
+            "{:?}",
+            TestingUtils::get_permutation_from_operation_string(sol_string_dot_format, str_to_gen)
+        );
+        return;
         let sol_path = format!("{}/{}.csv", solution_path, puzzle.id);
         if !Path::new(&sol_path).exists() {
             let res = std::fs::File::create(&sol_path);
