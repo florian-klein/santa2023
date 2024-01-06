@@ -102,8 +102,6 @@ impl<'a> Iterator for PermutationGroupPermAndWordIterator<'a> {
     type Item = PermAndWord;
 
     fn next(&mut self) -> Option<Self::Item> {
-        println!("Frontier: {:?}", self.frontier);
-        println!("Queue: {:?}", self.queue);
         if self.frontier.is_empty() {
             if !self.queue.is_empty() {
                 let perm_and_word = self.queue.pop_front().unwrap();

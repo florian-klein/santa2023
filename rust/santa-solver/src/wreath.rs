@@ -1,8 +1,7 @@
-use std::collections::HashMap;
-use log::{info};
 use crate::permutation::Permutation;
 use crate::puzzle::{Move, Puzzle, PuzzleType};
-
+use log::info;
+use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 enum WreathColor {
@@ -13,7 +12,7 @@ enum WreathColor {
 
 #[derive(Debug)]
 struct WreathState {
-    state: Vec<WreathColor>
+    state: Vec<WreathColor>,
 }
 
 impl WreathState {
@@ -27,14 +26,12 @@ impl WreathState {
                 _ => panic!("Invalid color"),
             }
         }
-        WreathState {
-            state
-        }
+        WreathState { state }
     }
 
     fn apply_permutation(&self, permutation: &Permutation) -> Self {
         WreathState {
-            state: permutation.apply(&self.state)
+            state: permutation.apply(&self.state),
         }
     }
 
@@ -65,7 +62,13 @@ impl WreathState {
     }
 }
 
-fn search(puzzle: &Puzzle, state: &WreathState, second_c: usize, bound: usize, last_move: Option<&str>) -> Option<Vec<Move>> {
+fn search(
+    puzzle: &Puzzle,
+    state: &WreathState,
+    second_c: usize,
+    bound: usize,
+    last_move: Option<&str>,
+) -> Option<Vec<Move>> {
     let wrong_elements = state.wrong_elements(second_c);
     let f = wrong_elements / 2;
     if wrong_elements <= puzzle.num_wildcards {
@@ -130,7 +133,10 @@ pub fn solve_puzzles(puzzles: &Vec<Puzzle>) -> HashMap<usize, String> {
             let result = result.unwrap();
             let score = result.len();
             results.insert(puzzle.id, crate::puzzle::moves_to_string(&result));
-            info!("Solved puzzle {:?} of type {:?} with score {}", puzzle.id, puzzle.puzzle_type, score);
+            info!(
+                "Solved puzzle {:?} of type {:?} with score {}",
+                puzzle.id, puzzle.puzzle_type, score
+            );
         }
     }
     results
@@ -139,8 +145,8 @@ pub fn solve_puzzles(puzzles: &Vec<Puzzle>) -> HashMap<usize, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::puzzle::{Puzzle, PuzzleType};
     use crate::permutation::Permutation;
+    use crate::puzzle::{Puzzle, PuzzleType};
 
     #[test]
     fn test_wreath_state_from_puzzle() {
@@ -158,21 +164,59 @@ mod tests {
                     permutation: Permutation::new(vec![7, 2, 9, 4, 5, 6, 8, 3, 10, 1]),
                 },
             ],
+            init_string: ".".to_string(),
+            goal_string: ".".to_string(),
             num_wildcards: 0,
             puzzle_type: PuzzleType::WREATH(6),
         };
         let wreath_state = WreathState::from_puzzle(&puzzle);
-        assert_eq!(wreath_state.state, vec![WreathColor::A, WreathColor::B, WreathColor::C, WreathColor::A, WreathColor::B, WreathColor::C, WreathColor::A, WreathColor::B, WreathColor::A, WreathColor::B]);
+        assert_eq!(
+            wreath_state.state,
+            vec![
+                WreathColor::A,
+                WreathColor::B,
+                WreathColor::C,
+                WreathColor::A,
+                WreathColor::B,
+                WreathColor::C,
+                WreathColor::A,
+                WreathColor::B,
+                WreathColor::A,
+                WreathColor::B
+            ]
+        );
     }
 
     #[test]
     fn test_wrong_elements() {
         let wreath_state = WreathState {
-            state: vec![WreathColor::A, WreathColor::B, WreathColor::C, WreathColor::A, WreathColor::B, WreathColor::C, WreathColor::A, WreathColor::B, WreathColor::A, WreathColor::B],
+            state: vec![
+                WreathColor::A,
+                WreathColor::B,
+                WreathColor::C,
+                WreathColor::A,
+                WreathColor::B,
+                WreathColor::C,
+                WreathColor::A,
+                WreathColor::B,
+                WreathColor::A,
+                WreathColor::B,
+            ],
         };
         assert_eq!(wreath_state.wrong_elements(2), 6);
         let solved_state = WreathState {
-            state: vec![WreathColor::C, WreathColor::A, WreathColor::C, WreathColor::A, WreathColor::A, WreathColor::A, WreathColor::B, WreathColor::B, WreathColor::B, WreathColor::B],
+            state: vec![
+                WreathColor::C,
+                WreathColor::A,
+                WreathColor::C,
+                WreathColor::A,
+                WreathColor::A,
+                WreathColor::A,
+                WreathColor::B,
+                WreathColor::B,
+                WreathColor::B,
+                WreathColor::B,
+            ],
         };
         assert_eq!(solved_state.wrong_elements(2), 0);
     }

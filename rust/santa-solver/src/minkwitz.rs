@@ -23,6 +23,7 @@ pub struct PermAndWord {
     pub perm: Permutation,
     pub word: Vec<usize>,
     pub news: bool,
+    pub inverse: Vec<usize>,
 }
 
 #[derive(Debug)]
@@ -95,6 +96,16 @@ impl PermAndWord {
             perm,
             word,
             news: true,
+            inverse: Vec::new(),
+        }
+    }
+
+    pub fn new_with_inverse(perm: Permutation, word: Vec<usize>, inverse: Vec<usize>) -> Self {
+        PermAndWord {
+            perm,
+            word,
+            news: true,
+            inverse,
         }
     }
     pub fn get_inverse(&self) -> Self {
@@ -111,6 +122,7 @@ impl PermAndWord {
             perm: self.perm.inverse(),
             word: inverse_word,
             news: self.news,
+            inverse: self.word.clone(),
         }
     }
     pub fn identity(n: usize) -> Self {
@@ -118,6 +130,7 @@ impl PermAndWord {
             perm: Permutation::identity(n),
             word: Vec::new(),
             news: true,
+            inverse: Vec::new(),
         }
     }
 
@@ -128,6 +141,7 @@ impl PermAndWord {
             perm: self.perm.compose(&other.perm),
             word: new_word,
             news: true,
+            inverse: Vec::new(),
         }
     }
 
@@ -236,6 +250,7 @@ impl MinkwitzTable {
                 perm: perm.clone(),
                 word: perm_path.arr,
                 news: true,
+                inverse: Vec::new(),
             };
             Self::one_round(&gens, &base, limit, 0, &mut mu_table, pw);
             if (count + 1) % s == 0 {
