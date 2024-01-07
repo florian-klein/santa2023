@@ -4,6 +4,7 @@ use santa_solver_lib::permutation::PermutationPath;
 use santa_solver_lib::permutation::{self, Permutation};
 use santa_solver_lib::puzzle::{self, Move, PuzzleType};
 use santa_solver_lib::schreier::SchreierSims;
+use santa_solver_lib::testing_utils::TestingUtils;
 use santa_solver_lib::{minkwitz, minkwitz_search, schreier};
 use std::collections::{HashMap, HashSet};
 use std::fs::OpenOptions;
@@ -12,13 +13,30 @@ fn create_sgs_table_wrapper(
     puzzle: &puzzle::Puzzle,
     gens: &minkwitz::GroupGens,
     base: &minkwitz::GroupBase,
+    minkwitz_table_path: &str,
 ) -> TransTable {
     info!(
         "Creating new SGS table for puzzle_type {:?}",
         puzzle.puzzle_type,
     );
-    let sgs_table = minkwitz::MinkwitzTable::build_short_word_sgs(&gens, &base, 1000, 100, 50);
-    return sgs_table;
+    let sgs_table_path = format!("{}/{}.csv", minkwitz_table_path, puzzle.puzzle_type);
+    if Path::new(&sgs_table_path).exists() {
+        let sgs_table = minkwitz::TransTable::read_from_file(&sgs_table_path);
+        info!(
+            "We found an existing SGS table of length {:?} for this puzzle of type {:?}. Loading it...",
+            sgs_table.table.len(),
+            puzzle.puzzle_type,
+        );
+        return sgs_table;
+    } else {
+        info!(
+            "We did not find an existing SGS table for this puzzle of type {:?}. Creating it...",
+            puzzle.puzzle_type
+        );
+        let sgs_table = minkwitz::MinkwitzTable::build_short_word_sgs(&gens, &base, 1000, 100, 50);
+        sgs_table.write_to_file(&sgs_table_path);
+        return sgs_table;
+    }
 }
 
 #[allow(dead_code)]
@@ -63,6 +81,7 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     let solution_path = "./../../data/solutions/";
     let _bases_storage_path = "./../../data/bases/";
+    let minkwitz_table_path = "./../../data/minkwitz_tables/";
     let puzzle_info_path = if args.len() > 2 {
         &args[2]
     } else {
@@ -117,7 +136,8 @@ fn main() {
         // let base = get_base_check_if_exists(&puzzle, &puzzles_info, bases_storage_path).unwrap();
         let base_vec: Vec<usize> = (0..puzzle.initial_state.len()).collect();
         let base = minkwitz::GroupBase::new(base_vec);
-        let sgs_table: TransTable = create_sgs_table_wrapper(&puzzle, &gens, &base);
+        let sgs_table: TransTable =
+            create_sgs_table_wrapper(&puzzle, &gens, &base, minkwitz_table_path);
 
         // 2) Factorize the target permutation
         let valid_indices: Vec<HashSet<usize>> =
@@ -145,6 +165,13 @@ fn main() {
         info!("----------------------------------------");
         let path = PermutationPath::new(factorization);
         let sol_string_dot_format = path.to_string(&index_to_gen_name);
+        TestingUtils::assert_applying_sol_string_to_initial_string_results_in_target(
+            puzzle.init_string,
+            puzzle.goal_string,
+            sol_string_dot_format,
+            puzzle.puzzle_type,
+        );
+        return;
         let sol_path = format!("{}/{}.csv", solution_path, puzzle.id);
         if !Path::new(&sol_path).exists() {
             let res = std::fs::File::create(&sol_path);

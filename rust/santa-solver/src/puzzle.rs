@@ -113,17 +113,35 @@ pub fn load_puzzle_info(
         let mut moves = Vec::new();
         let moves_data: MoveData = serde_json::from_str(&record[1].replace("'", "\""))
             .expect("Failed to parse moves data");
-        for (name, permutation) in moves_data.data {
+        // to keep naming consistent, create copy of data in which the key value pairs are sorted
+        // by name
+        let mut moves_data = moves_data
+            .data
+            .into_iter()
+            .collect::<Vec<(String, Vec<usize>)>>();
+        moves_data.sort_by(|a, b| a.0.cmp(&b.0));
+        for (name, permutation) in moves_data {
             let perm = Permutation::new(permutation.iter().map(|x| *x + 1).collect());
+            moves.push(Move {
+                name: name.clone(),
+                permutation: perm.clone(),
+            });
             moves.push(Move {
                 name: format!("-{}", name),
                 permutation: perm.inverse(),
-            });
-            moves.push(Move {
-                name,
-                permutation: perm,
-            });
+            })
         }
+        // for (name, permutation) in moves_data.data {
+        //     let perm = Permutation::new(permutation.iter().map(|x| *x + 1).collect());
+        //     moves.push(Move {
+        //         name: format!("-{}", name),
+        //         permutation: perm.inverse(),
+        //     });
+        //     moves.push(Move {
+        //         name,
+        //         permutation: perm,
+        //     });
+        // }
         allowed_moves.insert(puzzle_type, moves);
     }
 

@@ -53,6 +53,7 @@ pub fn minkwitz_djikstra(
                 "Current max index up to which perm is stabilized: {:?}",
                 max_index_seen
             );
+            info!("Current queue length: {:?}", pq.len());
         }
         // print first rwo eleemtns of queue
         // return condition, current string is valid target string

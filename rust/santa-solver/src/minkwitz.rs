@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::hash::{Hash, Hasher};
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, Write};
 
 use crate::permutation::Permutation;
 #[derive(Debug)]
@@ -40,6 +40,7 @@ pub struct GroupGens {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TransTable {
     pub table: HashMap<(usize, usize), PermAndWord>,
+    pub group_elements_processed: usize,
 }
 
 impl GroupGen {
@@ -179,7 +180,10 @@ impl PartialOrd for PermAndWord {
 impl TransTable {
     pub fn new() -> Self {
         let table: HashMap<(usize, usize), PermAndWord> = HashMap::new();
-        TransTable { table }
+        TransTable {
+            table,
+            group_elements_processed: 0,
+        }
     }
     pub fn insert(&mut self, key: (usize, usize), value: PermAndWord) {
         self.table.insert(key, value);
@@ -189,6 +193,26 @@ impl TransTable {
     }
     pub fn get_mutable(&mut self, key: &(usize, usize)) -> Option<&mut PermAndWord> {
         self.table.get_mut(key)
+    }
+    pub fn read_from_file(path: &str) -> Self {
+        let file = fs::File::open(path).unwrap();
+        let reader = io::BufReader::new(file);
+        let table: HashMap<(usize, usize), PermAndWord> =
+            bincode::deserialize_from(reader).unwrap();
+        TransTable {
+            table,
+            // TODO: also read this from file
+            group_elements_processed: 0,
+        }
+    }
+    pub fn write_to_file(&self, path: &str) -> () {
+        let file = fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(path)
+            .unwrap();
+        let mut file_writer = io::BufWriter::new(file);
+        let _ = bincode::serialize_into(&mut file_writer, &self);
     }
 }
 
@@ -292,6 +316,7 @@ impl MinkwitzTable {
         for (perm_path, perm) in group_iterator {
             if count >= max || Self::is_table_full(permutation_size, &gens, &mu_table) {
                 debug!("SGS Generation: Stopping as table is full or max reached");
+                mu_table.group_elements_processed = count;
                 break;
             }
             let pw = PermAndWord {
