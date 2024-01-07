@@ -43,7 +43,10 @@ pub fn minkwitz_djikstra(
      * as the current index (lets call this index j), if (j, omega) is in the table.
      * If it is, add the resulting PermAndWord to the priority queue.
      */
+    let mut elements_looked_at = 0;
     while !pq.is_empty() {
+        elements_looked_at += 1;
+        // print first rwo eleemtns of queue
         // return condition, current string is valid target string
         let current = pq.pop().unwrap();
         if minkwitz::MinkwitzTable::check_perm_is_target(
@@ -51,6 +54,18 @@ pub fn minkwitz_djikstra(
             &valid_indices,
         ) {
             info!("Djikstra found the shortest path in word length to target.");
+            info!("In the end, the queue had a length of {:?}", pq.len());
+            info!("Djikstra looked at {:?} elements", elements_looked_at);
+            let mut count_of_elements_not_at_own_place = 0;
+            for (index, elm) in current.perm_and_word.perm.p.iter().enumerate() {
+                if index != *elm - 1 {
+                    count_of_elements_not_at_own_place += 1;
+                }
+            }
+            info!(
+                "Djikstra found perm with {:?} elements not at their own place",
+                count_of_elements_not_at_own_place
+            );
             return Some(current.perm_and_word.clone());
         }
         // otherwise, check for the current index

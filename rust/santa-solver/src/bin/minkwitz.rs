@@ -132,15 +132,6 @@ fn main() {
         let mut factorization = fact.unwrap().word;
         factorization.reverse();
 
-        // TestingUtils::assert_index_path_equals_permutation(&factorization, &target, &index_to_perm);
-        // let mut perm_from_path =
-        //     TestingUtils::get_perm_from_index_path(&factorization, &index_to_perm);
-        // perm_from_path = perm_from_path.compose(&target);
-
-        // assert_eq!(
-        //     minkwitz::MinkwitzTable::check_perm_is_target(&perm_from_path, &valid_indices),
-        //     true
-        // );
         if factorization.len() == 0 {
             return;
         }
@@ -157,10 +148,9 @@ fn main() {
         TestingUtils::assert_applying_sol_string_to_initial_string_results_in_target(
             puzzle.init_string,
             puzzle.goal_string,
-            sol_string_dot_format,
+            sol_string_dot_format.clone(),
             puzzle.puzzle_type,
         );
-        return;
         let sol_path = format!("{}/{}.csv", solution_path, puzzle.id);
         if !Path::new(&sol_path).exists() {
             let res = std::fs::File::create(&sol_path);
