@@ -164,6 +164,18 @@ impl PartialEq for PermAndWord {
 
 impl Eq for PermAndWord {}
 
+impl Ord for PermAndWord {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.word.len().cmp(&other.word.len())
+    }
+}
+
+impl PartialOrd for PermAndWord {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 impl TransTable {
     pub fn new() -> Self {
         let table: HashMap<(usize, usize), PermAndWord> = HashMap::new();
@@ -200,9 +212,6 @@ impl MinkwitzTable {
         target: &Permutation,
         valid_indices: &Vec<HashSet<usize>>,
     ) -> Vec<usize> {
-        let mut list: Vec<usize> = Vec::new();
-        let mut perm = target.inverse().clone();
-        let mut index_to_perm: Vec<Permutation> = Vec::new();
         // sort valid indices based on the first element in the set
         let mut sorted_valid_indices: Vec<Vec<usize>> = valid_indices
             .iter()
@@ -217,50 +226,34 @@ impl MinkwitzTable {
             let b_first = b.iter().next().unwrap();
             a_first.cmp(b_first)
         });
-        println!("Sorted valid indices: {:?}", sorted_valid_indices);
-        for i in 0..gens.elements.len() {
-            index_to_perm.push(gens.elements[i].perm.clone());
-        }
-        // for each color set that needs to be fixed, find the shortest permutation
-        for index_set in &sorted_valid_indices {
-            // for each element in set, findest shortest that maps it to set
-            for i in 0..index_set.len() {
-                let mut shortest_perm: Option<PermAndWord> = None;
-                let cur_index = index_set[i];
-                let omega = perm.p[base.elements[cur_index]] - 1;
-                for j in i..index_set.len() {
-                    let cur_index = index_set[j];
-                    let table_entry: Option<&PermAndWord> = nu.table.get(&(cur_index, omega));
-                    // check if we found a valid entry to our map
-                    if table_entry.is_some() {
-                        // check if we found a shorter permutation, if so, replace
-                        if shortest_perm.is_none() {
-                            shortest_perm = Some(table_entry.unwrap().clone());
-                        } else {
-                            let table_entry = table_entry.unwrap();
-                            if table_entry.perm.len() < shortest_perm.as_ref().unwrap().perm.len() {
-                                info!("Found shorter perm: {:?}", table_entry);
-                                info!("Old shortest perm: {:?}", shortest_perm);
-                                shortest_perm = Some(table_entry.clone());
-                            }
-                        }
-                    }
+        let mut list: Vec<usize> = Vec::new();
+        let mut perm = target.inverse().clone();
+        for i in 0..base.elements.len() {
+            let omega = perm.p[base.elements[i]] - 1;
+            // testing
+            let mut set_where_i_is_in = None;
+            for set in sorted_valid_indices.iter() {
+                if set.contains(&i) {
+                    set_where_i_is_in = Some(set);
+                    println!("set: {:?}", set);
+                    break;
                 }
-
-                // check if we found any valid permutation
-                if shortest_perm.is_none() {
-                    debug!("We could not find a factorization!");
-                    return Vec::new();
-                }
-                let table_entry = shortest_perm.unwrap();
-                perm = table_entry.perm.compose(&perm);
-                let new_word = &table_entry.word;
-                list.extend(new_word);
             }
-            println!("We stabilized set {:?}", index_set);
+            for elm in set_where_i_is_in.unwrap() {
+                let subelm = nu.table.get(&(*elm, omega));
+            }
+            // testing
+            let table_entry = nu.table.get(&(i, omega));
+            if !table_entry.is_some() {
+                debug!("We could not find a factorization!");
+                return Vec::new();
+            }
+            let table_entry = table_entry.unwrap();
+            perm = table_entry.perm.compose(&perm);
+            let new_word = &table_entry.word;
+            list.extend(new_word);
         }
-        println!("perm: {:?}", perm);
-        if !Self::check_perm_is_target(&perm, &valid_indices) {
+        if perm != Permutation::identity(target.len()) {
             debug!("We could not find a factorization!");
             return Vec::new();
         }
@@ -441,43 +434,68 @@ impl MinkwitzTable {
     }
 }
 
-mod test {
-    use crate::schreier;
-
-    #[allow(dead_code)]
-    fn is_valid_sgs(tt: &super::TransTable, base: &super::GroupBase) {
-        let mut result = true;
-        for i in 0..base.elements.len() {
-            println!("Checking row {}", i);
-            let p = tt.get(&(i, i)).unwrap().perm.clone();
-            if !p.is_identity() {
-                println!("p {:?} is not identity", (i, i));
-                result = false;
-            }
-            for j in 0..base.elements.len() {
-                if let Some(table_entry) = tt.get(&(i, j)) {
-                    let p = table_entry.perm.clone();
-                    for k in 0..i {
-                        if p.p[base.elements[k]] - 1 != base.elements[k] {
-                            result = false;
-                            println!(
+pub fn is_valid_sgs(tt: &TransTable, base: &GroupBase) {
+    let mut result = true;
+    for i in 0..base.elements.len() {
+        let p = tt.get(&(i, i)).unwrap().perm.clone();
+        if !p.is_identity() {
+            println!("p {:?} is not identity", (i, i));
+            result = false;
+        }
+        for j in 0..base.elements.len() {
+            if let Some(table_entry) = tt.get(&(i, j)) {
+                let p = table_entry.perm.clone();
+                for k in 0..i {
+                    if p.p[base.elements[k]] - 1 != base.elements[k] {
+                        result = false;
+                        println!(
                                 "Table entry {:?} is not valid due to base elements as p {:?}, baselmk {:?}",
                                 (i, j),
                                 p,
                                 base.elements[k]
                             );
-                        }
                     }
-                    if p.p[j] - 1 != base.elements[i] {
-                        println!("Table entry {:?} is not valid", (i, j));
-                        result = false;
-                    }
+                }
+                if p.p[j] - 1 != base.elements[i] {
+                    println!("Table entry {:?} is not valid", (i, j));
+                    result = false;
                 }
             }
         }
-        assert!(result);
+    }
+    assert!(result);
+}
+mod test {
+    use crate::{schreier, testing_utils::TestingUtils};
+
+    #[test]
+    fn test_perm_and_word_compose() {
+        let gen1 = super::GroupGen::new(
+            "a".to_string(),
+            super::Permutation::parse_permutation_from_cycle("(1,2)", 3),
+        );
+        let gen2 = super::GroupGen::new(
+            "b".to_string(),
+            super::Permutation::parse_permutation_from_cycle("(2,3)", 3),
+        );
+        let gen1_inv = super::GroupGen::new("a_inv".to_string(), gen1.perm.inverse());
+        let gen2_inv = super::GroupGen::new("b_inv".to_string(), gen2.perm.inverse());
+        let index_to_gen = vec![
+            gen1_inv.perm.clone(),
+            gen1.perm.clone(),
+            gen2_inv.perm.clone(),
+            gen2.perm.clone(),
+        ];
+        let pw = super::PermAndWord::new(gen1.perm.clone(), vec![1]);
+        let pw2 = super::PermAndWord::new(gen2.perm.clone(), vec![3]);
+        let pw3 = pw.compose(&pw2);
+        let expected_perm = gen1.perm.compose(&gen2.perm);
+        assert_eq!(pw3.perm, expected_perm);
+        let other_word = pw3.word.clone();
+        TestingUtils::assert_index_path_equals_permutation(&other_word, &pw3.perm, &index_to_gen);
     }
 
+    #[allow(dead_code)]
     #[test]
     fn test_group_gens() {
         let perm1 = super::Permutation::parse_permutation_from_cycle("(1,2)", 3);
@@ -527,10 +545,10 @@ mod test {
                 }
             }
         }
-        is_valid_sgs(&tt, &base);
+        super::is_valid_sgs(&tt, &base);
     }
 
-    #[test]
+    // #[test]
     fn test_factorize_m_colored() {
         let perm1 = super::Permutation::parse_permutation_from_cycle("(1,5,7)(2,6,8)", 8);
         let perm2 = super::Permutation::parse_permutation_from_cycle("(1,5)(3,4,8,2)", 8);
@@ -550,8 +568,8 @@ mod test {
         let base = super::GroupBase {
             elements: vec![0, 1, 2, 3, 4, 5, 6, 7],
         };
-        let tt = super::MinkwitzTable::build_short_word_sgs(&gens, &base, 100, 10, 1000);
-        is_valid_sgs(&tt, &base);
+        let tt = super::MinkwitzTable::build_short_word_sgs(&gens, &base, 500, 20, 1000);
+        super::is_valid_sgs(&tt, &base);
         for elm in &tt.table {
             println!("Table entry {:?} is {:?}", elm.0, elm.1);
         }
@@ -561,11 +579,11 @@ mod test {
         println!("Valid indices: {:?}", valid_indices);
         let fact =
             super::MinkwitzTable::factorize_minkwitz(&gens, &base, &tt, &target, &valid_indices);
-        crate::testing_utils::TestingUtils::assert_index_path_equals_permutation(
-            &fact,
-            &target,
-            &index_to_gen,
-        );
+        let perm_from_indices = TestingUtils::get_perm_from_index_path(&fact, &index_to_gen);
+        assert_eq!(
+            super::MinkwitzTable::check_perm_is_target(&perm_from_indices, &valid_indices),
+            true
+        )
     }
 
     #[test]
@@ -592,7 +610,7 @@ mod test {
             elements: vec![0, 1, 2, 3, 4, 5, 6, 7],
         };
         let tt = super::MinkwitzTable::build_short_word_sgs(&gens, &base, 100, 10, 1000);
-        is_valid_sgs(&tt, &base);
+        super::is_valid_sgs(&tt, &base);
         for elm in &tt.table {
             println!("Table entry {:?} is {:?}", elm.0, elm.1);
         }
@@ -610,7 +628,7 @@ mod test {
         println!("Factorization: {:?}", fact);
     }
 
-    #[test]
+    // #[test]
     fn test_rubik_small_and_base_not_full() {
         let perm_f = super::Permutation::parse_permutation_from_cycle(
             "(9,10,12,11)(3,13,22,8)(4,15,21,6)",

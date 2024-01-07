@@ -131,6 +131,36 @@ impl TestingUtils {
         TestingUtils::assert_permutation_equals_operation_string(&perm, op_string, str_to_gen);
     }
 
+    pub fn assert_applying_sol_string_to_initial_string_results_in_target(
+        initial_string: String,
+        goal_string: String,
+        sol_string: String,
+        puzzle_type: PuzzleType,
+    ) {
+        let allowed_moves = puzzle::load_puzzle_info("./../../data/puzzle_info.csv")
+            .unwrap()
+            .get(&puzzle_type)
+            .unwrap()
+            .clone();
+        let str_to_gen: HashMap<String, Permutation> = allowed_moves
+            .iter()
+            .map(|m| (m.name.clone(), m.permutation.clone()))
+            .collect();
+        let res_perm = TestingUtils::get_permutation_from_operation_string(sol_string, str_to_gen);
+        let res_string = TestingUtils::apply_permutation_to_string(res_perm, &initial_string);
+        assert!(res_string == goal_string);
+    }
+
+    pub fn apply_permutation_to_string(perm: Permutation, string: &String) -> String {
+        let string_vec = string.split(";").collect::<Vec<&str>>();
+        let mut result: Vec<String> = vec!["".to_string(); perm.len()];
+        for i in 0..string_vec.len() {
+            let index = perm.p[i] - 1;
+            result[index] = string_vec[i].to_string();
+        }
+        result.join(";")
+    }
+
     pub fn validate_cycles_csv(path: String, puzzle_type: PuzzleType) -> () {
         let allowed_moves = puzzle::load_puzzle_info("./../../data/puzzle_info.csv")
             .unwrap()
@@ -157,6 +187,19 @@ impl TestingUtils {
         }
     }
 
+    pub fn get_perm_from_index_path(
+        path: &Vec<usize>,
+        index_to_perm: &Vec<Permutation>,
+    ) -> Permutation {
+        let mut result = Permutation::identity(index_to_perm[0].len());
+        for i in path {
+            // apply index_to_perm to resut
+            let perm = &index_to_perm[*i];
+            result = perm.compose(&result);
+        }
+        result
+    }
+
     pub fn assert_index_path_equals_permutation(
         path: &Vec<usize>,
         perm: &Permutation,
@@ -164,7 +207,6 @@ impl TestingUtils {
     ) -> () {
         let mut result = Permutation::identity(perm.len());
         for i in path {
-            // apply index_to_perm to resut
             let perm = &index_to_perm[*i];
             result = perm.compose(&result);
         }
@@ -176,5 +218,20 @@ impl TestingUtils {
             println!("composed: {:?}", composed);
         }
         assert!(result == *perm);
+    }
+}
+
+#[cfg(test)]
+pub mod test {
+    #[test]
+    fn test_apply_perm_to_string() {
+        let perm = crate::permutation::Permutation::parse_permutation_from_cycle("(1,2,3)", 3);
+        let string = "a;b;c".to_string();
+        let res = crate::testing_utils::TestingUtils::apply_permutation_to_string(perm, &string);
+        if res != "c;a;b".to_string() {
+            println!("res: {}", res);
+            assert_eq!(res, "c;a;b".to_string());
+        }
+        assert!(res == "c;a;b".to_string());
     }
 }
