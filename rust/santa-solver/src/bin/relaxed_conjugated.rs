@@ -1,5 +1,5 @@
 use crate::permutation::Permutation;
-use crate::permutation::PermutationPath;
+
 use log::{debug, info};
 use santa_solver_lib::conjugated_search as search;
 use santa_solver_lib::permutation;
@@ -86,7 +86,7 @@ fn main() {
                     permutation_target_path.clone().unwrap().arr.len()
                 );
                 info!("----------------------------------------");
-                let permutation_target_path = permutation_target_path.unwrap();
+                let _permutation_target_path = permutation_target_path.unwrap();
             }
         }
     }

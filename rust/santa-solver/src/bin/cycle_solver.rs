@@ -1,8 +1,8 @@
 use log::{debug, info};
-use santa_solver_lib::kalka_teicher_tsaban as kalka;
+
 use santa_solver_lib::permutation::Permutation;
 use santa_solver_lib::{permutation, puzzle};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::path::Path;
 
 fn main() {
@@ -47,7 +47,7 @@ fn main() {
     }
 
     for (t, _) in puzzles_info.iter() {
-        let mut filename = format!("{}/{}_2c.csv", cycles_path, t);
+        let filename = format!("{}/{}_2c.csv", cycles_path, t);
         // Check whether the file exists
         if Path::new(&filename).exists() {
             // Load the 3-cycles (format: permutation, path, length)
@@ -153,7 +153,7 @@ fn main() {
         } else {
             // Build the solution from the paths
             let mut sol = String::new();
-            let mut solution_length = 0;
+            // let mut solution_length = 0;
             for (i, p) in solution.unwrap().iter().enumerate() {
                 if i > 0 {
                     sol.push('.');
@@ -161,10 +161,10 @@ fn main() {
                 // Get the path from the two_cycles or three_cycles map
                 if let Some(path) = two_cycles[&puzzle.puzzle_type].get(p) {
                     sol.push_str(path);
-                    solution_length += path.split('.').count();
+                    // solution_length += path.split('.').count();
                 } else if let Some(path) = three_cycles[&puzzle.puzzle_type].get(p) {
                     sol.push_str(path);
-                    solution_length += path.split('.').count();
+                    // solution_length += path.split('.').count();
                 } else {
                     panic!("Failed to find path for permutation {:?}", p);
                 }

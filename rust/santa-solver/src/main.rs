@@ -4,7 +4,7 @@ use log::{debug, info};
 use santa_solver_lib::ktt_solver;
 use santa_solver_lib::puzzle;
 use std::collections::HashMap;
-use std::process::exit;
+
 
 fn write_solution_to_file(solution_path: &str, results: &HashMap<usize, String>) {
     debug!("Writing solution to file...");

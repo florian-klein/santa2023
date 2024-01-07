@@ -1,5 +1,5 @@
 use crate::groups::PermutationGroupIterator;
-use log::{debug, info};
+use log::debug;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -206,7 +206,7 @@ impl MinkwitzTable {
         return true;
     }
     pub fn factorize_minkwitz(
-        gens: &GroupGens,
+        _gens: &GroupGens,
         base: &GroupBase,
         nu: &TransTable,
         target: &Permutation,
@@ -240,7 +240,7 @@ impl MinkwitzTable {
                 }
             }
             for elm in set_where_i_is_in.unwrap() {
-                let subelm = nu.table.get(&(*elm, omega));
+                let _subelm = nu.table.get(&(*elm, omega));
             }
             // testing
             let table_entry = nu.table.get(&(i, omega));
@@ -466,7 +466,6 @@ pub fn is_valid_sgs(tt: &TransTable, base: &GroupBase) {
     assert!(result);
 }
 mod test {
-    use crate::{schreier, testing_utils::TestingUtils};
 
     #[test]
     fn test_perm_and_word_compose() {
@@ -492,7 +491,11 @@ mod test {
         let expected_perm = gen1.perm.compose(&gen2.perm);
         assert_eq!(pw3.perm, expected_perm);
         let other_word = pw3.word.clone();
-        TestingUtils::assert_index_path_equals_permutation(&other_word, &pw3.perm, &index_to_gen);
+        crate::testing_utils::TestingUtils::assert_index_path_equals_permutation(
+            &other_word,
+            &pw3.perm,
+            &index_to_gen,
+        );
     }
 
     #[allow(dead_code)]
@@ -518,7 +521,7 @@ mod test {
         let perm1_inv = perm1.inverse();
         let perm2_inv = perm2.inverse();
 
-        let index_to_gen = vec![
+        let _index_to_gen = vec![
             perm1_inv.clone(),
             perm1.clone(),
             perm2_inv.clone(),
@@ -546,44 +549,6 @@ mod test {
             }
         }
         super::is_valid_sgs(&tt, &base);
-    }
-
-    // #[test]
-    fn test_factorize_m_colored() {
-        let perm1 = super::Permutation::parse_permutation_from_cycle("(1,5,7)(2,6,8)", 8);
-        let perm2 = super::Permutation::parse_permutation_from_cycle("(1,5)(3,4,8,2)", 8);
-        let perm1_inv = perm1.inverse();
-        let perm2_inv = perm2.inverse();
-        let index_to_gen = vec![
-            perm1_inv.clone(),
-            perm1.clone(),
-            perm2_inv.clone(),
-            perm2.clone(),
-        ];
-        let gen1 = super::GroupGen::new("a".to_string(), perm1.clone());
-        let gen2 = super::GroupGen::new("b".to_string(), perm2.clone());
-        let gen1_inv = super::GroupGen::new("a_inv".to_string(), perm1_inv);
-        let gen2_inv = super::GroupGen::new("b_inv".to_string(), perm2_inv);
-        let gens = super::GroupGens::new(vec![gen1_inv, gen1, gen2_inv, gen2]);
-        let base = super::GroupBase {
-            elements: vec![0, 1, 2, 3, 4, 5, 6, 7],
-        };
-        let tt = super::MinkwitzTable::build_short_word_sgs(&gens, &base, 500, 20, 1000);
-        super::is_valid_sgs(&tt, &base);
-        for elm in &tt.table {
-            println!("Table entry {:?} is {:?}", elm.0, elm.1);
-        }
-        let target = perm1.compose(&perm2);
-        let valid_indices =
-            schreier::SchreierSims::get_stabilizing_color_gens(&"a;a;a;a;b;b;b;b".to_string());
-        println!("Valid indices: {:?}", valid_indices);
-        let fact =
-            super::MinkwitzTable::factorize_minkwitz(&gens, &base, &tt, &target, &valid_indices);
-        let perm_from_indices = TestingUtils::get_perm_from_index_path(&fact, &index_to_gen);
-        assert_eq!(
-            super::MinkwitzTable::check_perm_is_target(&perm_from_indices, &valid_indices),
-            true
-        )
     }
 
     #[test]
@@ -616,8 +581,9 @@ mod test {
         }
         let target = perm1.compose(&perm2);
         // 7, 3, 4, 2, 5, 8, 1, 6
-        let valid_indices =
-            schreier::SchreierSims::get_stabilizing_color_gens(&"7;3;4;2;5;8;1;6".to_string());
+        let valid_indices = crate::schreier::SchreierSims::get_stabilizing_color_gens(
+            &"7;3;4;2;5;8;1;6".to_string(),
+        );
         let fact =
             super::MinkwitzTable::factorize_minkwitz(&gens, &base, &tt, &target, &valid_indices);
         crate::testing_utils::TestingUtils::assert_index_path_equals_permutation(
@@ -628,7 +594,7 @@ mod test {
         println!("Factorization: {:?}", fact);
     }
 
-    // #[test]
+    #[test]
     fn test_rubik_small_and_base_not_full() {
         let perm_f = super::Permutation::parse_permutation_from_cycle(
             "(9,10,12,11)(3,13,22,8)(4,15,21,6)",
@@ -699,8 +665,9 @@ mod test {
         };
         let tt = super::MinkwitzTable::build_short_word_sgs(&gens, &base, 100, 10, 1000);
         let target = perm_f.compose(&perm_b).compose(&perm_u).compose(&perm_d);
-        let valid_indices =
-            schreier::SchreierSims::get_stabilizing_color_gens(&"1;2;3;4;5;6;7;8".to_string());
+        let valid_indices = crate::schreier::SchreierSims::get_stabilizing_color_gens(
+            &"1;2;3;4;5;6;7;8".to_string(),
+        );
         let fact =
             super::MinkwitzTable::factorize_minkwitz(&gens, &base, &tt, &target, &valid_indices);
         crate::testing_utils::TestingUtils::assert_index_path_equals_permutation(

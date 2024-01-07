@@ -1,15 +1,15 @@
-use log::{debug, error, info};
-use santa_solver_lib::permutation::{self, Permutation};
-use santa_solver_lib::puzzle::{self, Move, PuzzleType};
+use log::{debug, info};
+use santa_solver_lib::permutation::{self};
+use santa_solver_lib::puzzle::{self, PuzzleType};
 use santa_solver_lib::{minkwitz, schreier};
-use std::collections::{HashMap, HashSet};
-use std::fs::OpenOptions;
-use std::path::Path;
+use std::collections::{HashSet};
+
+
 
 fn main() {
     env_logger::init();
     let args: Vec<String> = std::env::args().collect();
-    let solution_path = "./../../data/solutions/";
+    let _solution_path = "./../../data/solutions/";
     let puzzle_info_path = if args.len() > 2 {
         &args[2]
     } else {

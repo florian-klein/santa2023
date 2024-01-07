@@ -1,5 +1,5 @@
 use log::{debug, error, info};
-use santa_solver_lib::minkwitz::{MinkwitzTable, PermAndWord, TransTable};
+use santa_solver_lib::minkwitz::{PermAndWord, TransTable};
 use santa_solver_lib::permutation::PermutationPath;
 use santa_solver_lib::permutation::{self, Permutation};
 use santa_solver_lib::puzzle::{self, Move, PuzzleType};
@@ -18,10 +18,11 @@ fn create_sgs_table_wrapper(
         "Creating new SGS table for puzzle_type {:?}",
         puzzle.puzzle_type,
     );
-    let sgs_table = minkwitz::MinkwitzTable::build_short_word_sgs(&gens, &base, 1000, 100, 100);
+    let sgs_table = minkwitz::MinkwitzTable::build_short_word_sgs(&gens, &base, 1000, 100, 50);
     return sgs_table;
 }
 
+#[allow(dead_code)]
 fn get_base_check_if_exists(
     puzzle: &puzzle::Puzzle,
     puzzle_info: &HashMap<PuzzleType, Vec<Move>>,
@@ -62,7 +63,7 @@ fn main() {
     env_logger::init();
     let args: Vec<String> = std::env::args().collect();
     let solution_path = "./../../data/solutions/";
-    let bases_storage_path = "./../../data/bases/";
+    let _bases_storage_path = "./../../data/bases/";
     let puzzle_info_path = if args.len() > 2 {
         &args[2]
     } else {

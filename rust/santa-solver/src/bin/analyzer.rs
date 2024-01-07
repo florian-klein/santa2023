@@ -15,7 +15,7 @@ fn main() {
     } else {
         "./../../data/puzzles.csv"
     };
-    let solution_path = if args.len() > 3 {
+    let _solution_path = if args.len() > 3 {
         &args[3]
     } else {
         "./../../python/santa_utils/submission.csv"
