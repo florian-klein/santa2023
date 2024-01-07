@@ -19,7 +19,12 @@ fn create_sgs_table_wrapper(
         "Creating new SGS table for puzzle_type {:?}",
         puzzle.puzzle_type,
     );
-    let sgs_table_path = format!("{}/{}.csv", minkwitz_table_path, puzzle.puzzle_type);
+    let n = 1000;
+    let s = 100;
+    let w = 50;
+    let improve_steps = 500;
+
+    let sgs_table_path = format!("{}/{}.bin", minkwitz_table_path, puzzle.puzzle_type);
     if Path::new(&sgs_table_path).exists() {
         let sgs_table = minkwitz::TransTable::read_from_file(&sgs_table_path);
         info!(
@@ -27,13 +32,37 @@ fn create_sgs_table_wrapper(
             sgs_table.table.len(),
             puzzle.puzzle_type,
         );
+        let previous_size = sgs_table.table.len();
+        if improve_steps > 0 {
+            info!("Improving the SGS table by {:?} steps...", improve_steps);
+            let sgs_table = minkwitz::MinkwitzTable::build_short_word_sgs(
+                &gens,
+                &base,
+                improve_steps,
+                s,
+                w,
+                Some(sgs_table),
+            );
+            let improvement = sgs_table.table.len() - previous_size;
+            if improvement > 0 {
+                info!(
+                    "The SGS table was improved by {:?} steps. Writing to file...",
+                    improvement
+                );
+                sgs_table.write_to_file(&sgs_table_path);
+            } else {
+                error!("The SGS table was not improved. Suggest lowering improvement_steps to 0 to avoid unnecessary computation.");
+            }
+            sgs_table.write_to_file(&sgs_table_path);
+            return sgs_table;
+        }
         return sgs_table;
     } else {
         info!(
             "We did not find an existing SGS table for this puzzle of type {:?}. Creating it...",
             puzzle.puzzle_type
         );
-        let sgs_table = minkwitz::MinkwitzTable::build_short_word_sgs(&gens, &base, 1000, 100, 50);
+        let sgs_table = minkwitz::MinkwitzTable::build_short_word_sgs(&gens, &base, n, s, w, None);
         sgs_table.write_to_file(&sgs_table_path);
         return sgs_table;
     }
@@ -168,10 +197,9 @@ fn main() {
         TestingUtils::assert_applying_sol_string_to_initial_string_results_in_target(
             puzzle.init_string,
             puzzle.goal_string,
-            sol_string_dot_format,
+            sol_string_dot_format.clone(),
             puzzle.puzzle_type,
         );
-        return;
         let sol_path = format!("{}/{}.csv", solution_path, puzzle.id);
         if !Path::new(&sol_path).exists() {
             let res = std::fs::File::create(&sol_path);

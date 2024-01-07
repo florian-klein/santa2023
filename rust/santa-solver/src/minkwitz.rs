@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::hash::{Hash, Hasher};
-use std::io::{self, BufRead, Write};
+use std::io::{self, BufRead};
 
 use crate::permutation::Permutation;
 #[derive(Debug)]
@@ -197,18 +197,14 @@ impl TransTable {
     pub fn read_from_file(path: &str) -> Self {
         let file = fs::File::open(path).unwrap();
         let reader = io::BufReader::new(file);
-        let table: HashMap<(usize, usize), PermAndWord> =
-            bincode::deserialize_from(reader).unwrap();
-        TransTable {
-            table,
-            // TODO: also read this from file
-            group_elements_processed: 0,
-        }
+        let table: TransTable = bincode::deserialize_from(reader).unwrap();
+        return table;
     }
     pub fn write_to_file(&self, path: &str) -> () {
         let file = fs::OpenOptions::new()
             .write(true)
             .create(true)
+            .truncate(true)
             .open(path)
             .unwrap();
         let mut file_writer = io::BufWriter::new(file);
@@ -296,8 +292,15 @@ impl MinkwitzTable {
         n: usize,
         s: usize,
         w: usize,
+        current_mu_table: Option<TransTable>,
     ) -> TransTable {
-        let mut mu_table = TransTable::new();
+        // if the current mu_table is not defined, create a new one, otherwise improve from already
+        // processed count of group elements onward
+        let mut mu_table = match current_mu_table {
+            Some(table) => table,
+            None => TransTable::new(),
+        };
+        let start_index_from = mu_table.group_elements_processed;
         let permutation_size = gens.elements[0].perm.len();
         for i in 0..base.elements.len() {
             mu_table.insert(
@@ -305,7 +308,8 @@ impl MinkwitzTable {
                 PermAndWord::identity(gens.elements[0].perm.len()),
             );
         }
-        let max = n;
+        println!("start_index_from: {:?}", start_index_from);
+        let max = n + start_index_from;
         let mut limit = w;
         let mut count = 0;
         let mut gen_perm_to_index: HashMap<Permutation, usize> = HashMap::new();
@@ -314,6 +318,10 @@ impl MinkwitzTable {
         }
         let group_iterator = PermutationGroupIterator::new(&gen_perm_to_index);
         for (perm_path, perm) in group_iterator {
+            if count < start_index_from {
+                count += 1;
+                continue;
+            }
             if count >= max || Self::is_table_full(permutation_size, &gens, &mu_table) {
                 debug!("SGS Generation: Stopping as table is full or max reached");
                 mu_table.group_elements_processed = count;
@@ -562,7 +570,7 @@ mod test {
         let base = super::GroupBase {
             elements: vec![0, 1, 2, 3, 4, 5, 6, 7],
         };
-        let tt = super::MinkwitzTable::build_short_word_sgs(&gens, &base, 100, 10, 1000);
+        let tt = super::MinkwitzTable::build_short_word_sgs(&gens, &base, 100, 10, 1000, None);
         for i in 0..base.elements.len() {
             for j in 0..base.elements.len() {
                 if i == j {
@@ -599,7 +607,7 @@ mod test {
         let base = super::GroupBase {
             elements: vec![0, 1, 2, 3, 4, 5, 6, 7],
         };
-        let tt = super::MinkwitzTable::build_short_word_sgs(&gens, &base, 100, 10, 1000);
+        let tt = super::MinkwitzTable::build_short_word_sgs(&gens, &base, 100, 10, 1000, None);
         super::is_valid_sgs(&tt, &base);
         for elm in &tt.table {
             println!("Table entry {:?} is {:?}", elm.0, elm.1);
@@ -688,7 +696,7 @@ mod test {
         let base = super::GroupBase {
             elements: vec![0, 1, 2, 3, 20, 21, 22, 23],
         };
-        let tt = super::MinkwitzTable::build_short_word_sgs(&gens, &base, 100, 10, 1000);
+        let tt = super::MinkwitzTable::build_short_word_sgs(&gens, &base, 100, 10, 1000, None);
         let target = perm_f.compose(&perm_b).compose(&perm_u).compose(&perm_d);
         let valid_indices = crate::schreier::SchreierSims::get_stabilizing_color_gens(
             &"1;2;3;4;5;6;7;8".to_string(),

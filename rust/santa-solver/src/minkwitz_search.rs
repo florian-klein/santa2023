@@ -136,7 +136,8 @@ mod test {
         let genset = GroupGens::new(vec![gen1_inv, gen1, gen2_inv, gen2]);
         let base = GroupBase::new(vec![0, 1, 2]);
         // build the table
-        let sgs_table = minkwitz::MinkwitzTable::build_short_word_sgs(&genset, &base, 100, 10, 100);
+        let sgs_table =
+            minkwitz::MinkwitzTable::build_short_word_sgs(&genset, &base, 100, 10, 100, None);
         // valid indices is vector of three sets each containing one index
         let valid_indices = vec![
             vec![0].into_iter().collect::<HashSet<usize>>(),
@@ -169,7 +170,7 @@ mod test {
         let base = GroupBase {
             elements: vec![0, 1, 2, 3, 4, 5, 6, 7],
         };
-        let tt = minkwitz::MinkwitzTable::build_short_word_sgs(&gens, &base, 1000, 20, 10);
+        let tt = minkwitz::MinkwitzTable::build_short_word_sgs(&gens, &base, 1000, 20, 10, None);
         for elm in &tt.table {
             println!("Table entry {:?} is {:?}", elm.0, elm.1);
         }
