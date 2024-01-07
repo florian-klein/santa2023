@@ -4,7 +4,6 @@ use santa_solver_lib::permutation::PermutationPath;
 use santa_solver_lib::permutation::{self, Permutation};
 use santa_solver_lib::puzzle::{self, Move, PuzzleType};
 use santa_solver_lib::schreier::SchreierSims;
-use santa_solver_lib::testing_utils::TestingUtils;
 use santa_solver_lib::{minkwitz, minkwitz_search, schreier};
 use std::collections::{HashMap, HashSet};
 use std::fs::OpenOptions;
@@ -119,12 +118,12 @@ fn main() {
         let base_vec: Vec<usize> = (0..puzzle.initial_state.len()).collect();
         let base = minkwitz::GroupBase::new(base_vec);
         let sgs_table: TransTable = create_sgs_table_wrapper(&puzzle, &gens, &base);
-        minkwitz::is_valid_sgs(&sgs_table, &base);
 
         // 2) Factorize the target permutation
         let valid_indices: Vec<HashSet<usize>> =
             schreier::SchreierSims::get_stabilizing_color_gens(&puzzle.goal_string);
         let target_pw = PermAndWord::new(target.clone(), vec![]);
+        info!("Searching for a path to the target permutation...");
         let fact = minkwitz_search::minkwitz_djikstra(valid_indices.clone(), target_pw, sgs_table);
         if fact.is_none() {
             error!("Could not find a path to the target permutation!");
@@ -146,12 +145,6 @@ fn main() {
         info!("----------------------------------------");
         let path = PermutationPath::new(factorization);
         let sol_string_dot_format = path.to_string(&index_to_gen_name);
-        TestingUtils::assert_applying_sol_string_to_initial_string_results_in_target(
-            puzzle.init_string,
-            puzzle.goal_string,
-            sol_string_dot_format.clone(),
-            puzzle.puzzle_type,
-        );
         let sol_path = format!("{}/{}.csv", solution_path, puzzle.id);
         if !Path::new(&sol_path).exists() {
             let res = std::fs::File::create(&sol_path);

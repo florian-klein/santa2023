@@ -44,11 +44,20 @@ pub fn minkwitz_djikstra(
      * If it is, add the resulting PermAndWord to the priority queue.
      */
     let mut elements_looked_at = 0;
+    let mut max_index_seen = 0;
     while !pq.is_empty() {
         elements_looked_at += 1;
+        if elements_looked_at % 100000 == 0 {
+            info!("Djikstra has looked at {:?} elements", elements_looked_at);
+            info!(
+                "Current max index up to which perm is stabilized: {:?}",
+                max_index_seen
+            );
+        }
         // print first rwo eleemtns of queue
         // return condition, current string is valid target string
         let current = pq.pop().unwrap();
+        max_index_seen = std::cmp::max(max_index_seen, current.current_index);
         if minkwitz::MinkwitzTable::check_perm_is_target(
             &current.perm_and_word.perm,
             &valid_indices,
