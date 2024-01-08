@@ -1,4 +1,5 @@
 use crate::minkwitz::{self, PermAndWord, TransTable};
+use log::error;
 use log::info;
 use std::{
     cmp::Ordering,
@@ -14,20 +15,45 @@ pub struct PermWordAssignedIndices {
 
 impl PartialOrd for PermWordAssignedIndices {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        return self.perm_and_word.partial_cmp(&other.perm_and_word);
+        let self_word_len = self.perm_and_word.word.len();
+        let other_word_len = other.perm_and_word.word.len();
+
+        Some(self_word_len.cmp(&other_word_len))
     }
 }
 
 impl Ord for PermWordAssignedIndices {
     fn cmp(&self, other: &Self) -> Ordering {
-        return self.perm_and_word.cmp(&other.perm_and_word);
+        let self_word_len = self.perm_and_word.word.len();
+        let other_word_len = other.perm_and_word.word.len();
+
+        self_word_len.cmp(&other_word_len)
     }
+}
+
+pub fn get_stabilized_up_to_index(
+    perm_word_assigned_indices: &PermAndWord,
+    valid_indices: &Vec<HashSet<usize>>,
+) -> usize {
+    // returns the first index that is not stabilized setwise
+    let mut stabilized_up_to_index = perm_word_assigned_indices.perm.len();
+    // find the smallest index not stabilized
+    for valid_indices_group in valid_indices {
+        for index in valid_indices_group {
+            let omega = perm_word_assigned_indices.perm.p[*index] - 1;
+            if !valid_indices_group.contains(&omega) {
+                stabilized_up_to_index = std::cmp::min(stabilized_up_to_index, *index);
+            }
+        }
+    }
+    return stabilized_up_to_index;
 }
 
 pub fn minkwitz_djikstra(
     valid_indices: Vec<HashSet<usize>>,
     target: PermAndWord,
     sgs_table: TransTable,
+    limit: usize,
 ) -> Option<PermAndWord> {
     let mut pq: BinaryHeap<PermWordAssignedIndices> = BinaryHeap::new();
     let initial_target = PermWordAssignedIndices {
@@ -47,15 +73,15 @@ pub fn minkwitz_djikstra(
     let mut max_index_seen = 0;
     while !pq.is_empty() {
         elements_looked_at += 1;
-        if elements_looked_at % 100000 == 0 {
+        if elements_looked_at % 100 == 0 {
             info!("Djikstra has looked at {:?} elements", elements_looked_at);
             info!(
                 "Current max index up to which perm is stabilized: {:?}",
                 max_index_seen
             );
             info!("Current queue length: {:?}", pq.len());
+            break;
         }
-        // print first rwo eleemtns of queue
         // return condition, current string is valid target string
         let current = pq.pop().unwrap();
         max_index_seen = std::cmp::max(max_index_seen, current.current_index);
@@ -80,24 +106,45 @@ pub fn minkwitz_djikstra(
         }
         // otherwise, check for the current index
         let current_index = current.current_index;
-        let omega = current.perm_and_word.perm.p[current_index] - 1;
         // for all elemeents in the same valid_indices group as the current index that are also
         // larger than the current index (since we want to stabilize the indices in order), check
         let current_index_valid_indices = valid_indices
             .iter()
             .find(|valid_indices_group| valid_indices_group.contains(&current_index))
             .unwrap();
+        let find_index_location = current.perm_and_word.perm.inverse();
         for index in current_index_valid_indices {
-            if *index < current_index || current.assigned_indices.contains(index) {
+            let index_omega = find_index_location.p[*index] - 1;
+            /*
+             * Note: It could happen that for all elements that have not yet been assigned, that
+             * there is no permutation that directly maps the required element to the correct
+             * position. Therefore, we need to find a mapping that maps the index we require to an
+             * index that we have a mapping from to the goal index
+             */
+            if current.assigned_indices.contains(index) {
                 continue;
             }
+            // if we reach this position here, we know that the index has not yet been assigned
+            // therefore, it is at a position from which we need a mapping to our goal index
+            // if there is such a mapping (see if condition, everything is fine )
+            // if we do not have such a mapping, we need to take a look at all other indices in the
+            // table that map to our current_index and for each element that is still not assigned
+            // in the set, check if we can map the element from its current index to an index
+            // reachable
             // if the current index and the index we are checking are in the table, add the
             // resulting PermAndWord to the priority queue
-            if let Some(table_entry) = sgs_table.get(&(*index, omega)) {
+            if let Some(table_entry) = sgs_table.get(&(current_index, index_omega)) {
+                // println!("Ja!");
+                // if cur_assigned_count > limit {
+                //     continue;
+                // }
                 let mut new_assigned_indices = current.assigned_indices.clone();
-                let new_perm_and_word = table_entry.compose(&current.perm_and_word);
-                new_assigned_indices.insert(*index);
-                let next_index = current_index + 1;
+                let new_perm_and_word = current.perm_and_word.compose(&table_entry.get_inverse());
+                let next_index =
+                    self::get_stabilized_up_to_index(&new_perm_and_word, &valid_indices);
+                for i in 0..next_index {
+                    new_assigned_indices.insert(new_perm_and_word.perm.p[i] - 1);
+                }
                 // create word that is inserted into the pq next
                 let new_perm_and_word = PermWordAssignedIndices {
                     perm_and_word: new_perm_and_word,
@@ -105,10 +152,45 @@ pub fn minkwitz_djikstra(
                     current_index: next_index,
                 };
                 pq.push(new_perm_and_word);
+            } else {
+                error!("Went into else branch");
+                let mut reachable_table_entries: Vec<usize> = Vec::new();
+                // find all indics that can be mapped to current_index
+                for i in current_index..current.perm_and_word.perm.len() {
+                    if sgs_table.table.contains_key(&(current_index, i)) {
+                        reachable_table_entries.push(i);
+                    }
+                }
+                // for each index that can be mapped to our current_index, check if can map the
+                // element at index index_omega (this element is index) to any of those indices
+                // todo: this is recursive, solve this somehow :eyes:
+                for reaches_cur_index in &reachable_table_entries {
+                    if let Some(table_entry) = sgs_table.get(&(*reaches_cur_index, index_omega)) {
+                        let new_perm_and_word =
+                            current.perm_and_word.compose(&table_entry.get_inverse());
+                        let next_index =
+                            self::get_stabilized_up_to_index(&new_perm_and_word, &valid_indices);
+                        let mut new_assigned_indices = current.assigned_indices.clone();
+                        for i in 0..next_index {
+                            new_assigned_indices.insert(new_perm_and_word.perm.p[i] - 1);
+                        }
+                        // create word that is inserted into the pq next
+                        let new_perm_and_word = PermWordAssignedIndices {
+                            perm_and_word: new_perm_and_word,
+                            assigned_indices: new_assigned_indices,
+                            current_index: next_index,
+                        };
+                        pq.push(new_perm_and_word);
+                        return None;
+                    }
+                }
             }
         }
     }
-
+    info!(
+        "Djikstra did not find a path to the target permutation. Failed at index {:?}",
+        max_index_seen
+    );
     return None;
 }
 
@@ -151,7 +233,7 @@ mod test {
             inverse: vec![],
             news: true,
         };
-        let result = super::minkwitz_djikstra(valid_indices, target, sgs_table);
+        let result = super::minkwitz_djikstra(valid_indices, target, sgs_table, 1000);
         assert_eq!(result.is_some(), true);
     }
 
@@ -176,7 +258,7 @@ mod test {
         }
         let target = perm1.compose(&perm2);
         let target_perm_word = PermAndWord {
-            perm: target.clone(),
+            perm: target.inverse().clone(),
             word: vec![],
             inverse: vec![],
             news: true,
@@ -184,13 +266,28 @@ mod test {
         let valid_indices =
             schreier::SchreierSims::get_stabilizing_color_gens(&"a;a;a;a;b;b;b;b".to_string());
         println!("Valid indices: {:?}", valid_indices);
-        let word = super::minkwitz_djikstra(valid_indices.clone(), target_perm_word, tt);
+        let word = super::minkwitz_djikstra(valid_indices.clone(), target_perm_word, tt, 1000);
         let word_elm = word.clone().unwrap().word;
         let perm = TestingUtils::get_perm_from_index_path(&word_elm, &index_to_perm);
-        let res = perm.compose(&target);
+        let res = target.compose(&perm);
         assert_eq!(
             minkwitz::MinkwitzTable::check_perm_is_target(&res, &valid_indices),
             true
         );
+    }
+
+    #[test]
+    fn test_stabilized_up_to_index() {
+        let target_perm_word = PermAndWord {
+            perm: Permutation::parse_permutation_from_str_arr("[4,3,2,6,1,8,7,5]".to_string()),
+            word: vec![],
+            inverse: vec![],
+            news: true,
+        };
+        let valid_indices =
+            schreier::SchreierSims::get_stabilizing_color_gens(&"a;a;a;a;b;b;b;b".to_string());
+        let stabilized_up_to_index =
+            super::get_stabilized_up_to_index(&target_perm_word, &valid_indices);
+        assert_eq!(stabilized_up_to_index, 3);
     }
 }

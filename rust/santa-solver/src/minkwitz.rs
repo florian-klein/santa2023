@@ -41,6 +41,7 @@ pub struct GroupGens {
 pub struct TransTable {
     pub table: HashMap<(usize, usize), PermAndWord>,
     pub group_elements_processed: usize,
+    pub num_changes: usize,
 }
 
 impl GroupGen {
@@ -159,7 +160,7 @@ impl Hash for PermAndWord {
 
 impl PartialEq for PermAndWord {
     fn eq(&self, other: &Self) -> bool {
-        self.perm == other.perm
+        self.word == other.word
     }
 }
 
@@ -167,13 +168,25 @@ impl Eq for PermAndWord {}
 
 impl Ord for PermAndWord {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.word.len().cmp(&other.word.len())
+        if self.word.len() < other.word.len() {
+            return std::cmp::Ordering::Less;
+        }
+        if self.word.len() > other.word.len() {
+            return std::cmp::Ordering::Greater;
+        }
+        return std::cmp::Ordering::Equal;
     }
 }
 
 impl PartialOrd for PermAndWord {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        if self.word.len() < other.word.len() {
+            return Some(std::cmp::Ordering::Less);
+        }
+        if self.word.len() > other.word.len() {
+            return Some(std::cmp::Ordering::Greater);
+        }
+        return Some(std::cmp::Ordering::Equal);
     }
 }
 
@@ -183,9 +196,11 @@ impl TransTable {
         TransTable {
             table,
             group_elements_processed: 0,
+            num_changes: 0,
         }
     }
     pub fn insert(&mut self, key: (usize, usize), value: PermAndWord) {
+        self.num_changes += 1;
         self.table.insert(key, value);
     }
     pub fn get(&self, key: &(usize, usize)) -> Option<&PermAndWord> {
@@ -308,7 +323,6 @@ impl MinkwitzTable {
                 PermAndWord::identity(gens.elements[0].perm.len()),
             );
         }
-        println!("start_index_from: {:?}", start_index_from);
         let max = n + start_index_from;
         let mut limit = w;
         let mut count = 0;
@@ -321,6 +335,9 @@ impl MinkwitzTable {
             if count < start_index_from {
                 count += 1;
                 continue;
+            }
+            if count == start_index_from {
+                debug!("SGS Generation: Starting at group element {}", count);
             }
             if count >= max || Self::is_table_full(permutation_size, &gens, &mu_table) {
                 debug!("SGS Generation: Stopping as table is full or max reached");
@@ -406,10 +423,16 @@ impl MinkwitzTable {
                     let x_elm = mu_table.get(&(j, x));
                     let y_elm = mu_table.get(&(j, y));
                     if x_elm.is_some() && y_elm.is_some() {
-                        let x_elm = x_elm.unwrap();
-                        let y_elm = y_elm.unwrap();
+                        let x_elm = x_elm.unwrap().clone();
+                        let y_elm = y_elm.unwrap().clone();
                         if x_elm.news || y_elm.news {
-                            let t = y_elm.compose(&x_elm);
+                            let mut t = y_elm.compose(&x_elm);
+                            Self::one_round(gens, base, limit, j, mu_table, t);
+                            t = x_elm.compose(&y_elm);
+                            Self::one_round(gens, base, limit, j, mu_table, t);
+                            t = x_elm.get_inverse().compose(&y_elm);
+                            Self::one_round(gens, base, limit, j, mu_table, t);
+                            t = y_elm.get_inverse().compose(&x_elm);
                             Self::one_round(gens, base, limit, j, mu_table, t);
                         }
                     }

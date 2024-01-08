@@ -89,6 +89,7 @@ pub fn id_to_sol_string_to_csv(path: &String, id_to_sol_string: &HashMap<usize, 
     let file = OpenOptions::new()
         .read(true)
         .write(true)
+        .truncate(true)
         .create(true)
         .open(path)
         .unwrap();

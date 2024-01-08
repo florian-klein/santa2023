@@ -136,6 +136,7 @@ impl TestingUtils {
         goal_string: String,
         sol_string: String,
         puzzle_type: PuzzleType,
+        num_wildcards: usize,
     ) {
         let allowed_moves = puzzle::load_puzzle_info("./../../data/puzzle_info.csv")
             .unwrap()
@@ -146,9 +147,28 @@ impl TestingUtils {
             .iter()
             .map(|m| (m.name.clone(), m.permutation.clone()))
             .collect();
-        let res_perm = TestingUtils::get_permutation_from_operation_string(sol_string, str_to_gen);
-        let res_string = TestingUtils::apply_permutation_to_string(res_perm, &initial_string);
-        assert!(res_string == goal_string);
+        let sol_string_reversed = sol_string.split(".");
+        let mut sol_string_reversed_vec: Vec<&str> = sol_string_reversed.collect();
+        sol_string_reversed_vec.reverse();
+        let joined_string = sol_string_reversed_vec.join(".");
+        let res_perm =
+            TestingUtils::get_permutation_from_operation_string(joined_string, str_to_gen);
+        let res_string =
+            TestingUtils::apply_permutation_to_string(res_perm.inverse(), &initial_string);
+        let mut num_mismatches = 0;
+        for (i, c) in res_string.chars().enumerate() {
+            if c != goal_string.chars().nth(i).unwrap() {
+                num_mismatches += 1;
+            }
+        }
+        if num_mismatches > num_wildcards {
+            println!("initial_string: \t{}", initial_string);
+            println!("res_string: \t\t {}", res_string);
+            println!("expected res_string: \t {}", goal_string);
+            println!("num mismatches: \t {}", num_mismatches);
+            println!("num wildcards: \t\t {}", num_wildcards);
+            assert_eq!(0, 1);
+        }
     }
 
     pub fn apply_permutation_to_string(perm: Permutation, string: &String) -> String {
@@ -223,6 +243,10 @@ impl TestingUtils {
 
 #[cfg(test)]
 pub mod test {
+    use std::collections::HashMap;
+
+    use crate::permutation::Permutation;
+
     #[test]
     fn test_apply_perm_to_string() {
         let perm = crate::permutation::Permutation::parse_permutation_from_cycle("(1,2,3)", 3);
@@ -233,5 +257,41 @@ pub mod test {
             assert_eq!(res, "c;a;b".to_string());
         }
         assert!(res == "c;a;b".to_string());
+    }
+
+    #[test]
+    fn test_get_permutation_from_operation_string() {
+        let mut str_to_gen: HashMap<String, Permutation> = HashMap::new();
+        let f1_perm =
+            Permutation::parse_permutation_from_cycle("(3,20,22,9)(4,18,21,11)(5,7,8,6)", 24);
+        let f2_perm =
+            Permutation::parse_permutation_from_cycle("(1,19,24,10)(2,17,23,12)(13,14,16,15)", 24);
+        str_to_gen.insert("f0".to_string(), f1_perm.clone());
+        str_to_gen.insert("f1".to_string(), f2_perm.clone());
+        let op_string = "f0.f1.f0".to_string();
+        let perm = crate::testing_utils::TestingUtils::get_permutation_from_operation_string(
+            op_string, str_to_gen,
+        );
+        let expected_perm = crate::permutation::Permutation::parse_permutation_from_cycle(
+            "(1,19,24,10)(2,17,23,12)(3,22)(4,21)(5,8)(6,7)(9,20)(11,18)(13,14,16,15)",
+            24,
+        );
+        if perm != expected_perm {
+            println!("perm: \t\t {:?}", perm);
+            println!("expected_perm: \t {:?}", expected_perm);
+        }
+        assert!(perm == expected_perm);
+    }
+
+    #[test]
+    fn test_get_sol_string_from_op_string() {
+        let init_string: String = "D;E;D;A;E;B;A;B;C;A;C;A;D;C;D;F;F;F;E;E;B;F;B;C".to_string();
+        let expected_string: String = "E;F;F;B;B;A;B;E;E;D;F;E;C;F;D;D;B;C;C;C;A;D;A;A".to_string();
+        let op_string: String = "f0.f1.f0".to_string();
+        let puzzle_type = crate::puzzle::PuzzleType::CUBE(2);
+        let num_wildcards = 0;
+        crate::testing_utils::TestingUtils::assert_applying_sol_string_to_initial_string_results_in_target(
+            init_string, expected_string, op_string, puzzle_type, num_wildcards,
+        );
     }
 }

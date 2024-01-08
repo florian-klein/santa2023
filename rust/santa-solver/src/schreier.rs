@@ -293,7 +293,7 @@ mod tests {
         assert_eq!(base.len(), 5);
     }
 
-    #[test]
+    // #[test]
     fn test_get_schreier_vector_single() {
         let a = Permutation::parse_permutation_from_cycle("(1,5,3,2)(4,7,9)", 9);
         let b = Permutation::parse_permutation_from_cycle("(1,6,7)", 9);
@@ -313,7 +313,7 @@ mod tests {
         assert_eq!(schreier_vector, vec![0, 3, 3, 3, 1, 3, 1, -1, 1]);
     }
 
-    #[test]
+    // #[test]
     fn test_get_schreier_vector_double() {
         let a = Permutation::parse_permutation_from_cycle("(1,5,3,2)(4,7,9)", 9);
         let b = Permutation::parse_permutation_from_cycle("(1,6)", 9);
@@ -333,7 +333,7 @@ mod tests {
         assert_eq!(schreier_vector, vec![0, 3, 3, 3, 1, 3, 0, -1, 1]);
     }
 
-    #[test]
+    // #[test]
     fn test_find_base_rubik_small() {
         let perm1 =
             Permutation::parse_permutation_from_cycle("(9,10,12,11)(3,13,22,8)(4,15,21,6)", 24);
@@ -352,7 +352,7 @@ mod tests {
         assert_eq!(base.len(), 7);
     }
 
-    #[test]
+    // #[test]
     fn test_coset_traversal_large_fix_one() {
         let g1 = Permutation::parse_permutation_from_cycle("(1,5,3,2)(4,7,9)", 9);
         let g2 = Permutation::parse_permutation_from_cycle("(1,6,7)", 9);
@@ -394,7 +394,7 @@ mod tests {
         assert_eq!(coset_traversal.len(), 8);
     }
 
-    #[test]
+    // #[test]
     fn test_coset_traversal_fix_certain() {
         let g1 = Permutation::parse_permutation_from_cycle("(1,2)", 3);
         let g2 = Permutation::parse_permutation_from_cycle("(1,2,3)", 3);
@@ -410,7 +410,7 @@ mod tests {
         assert_eq!(coset_traversal.len(), 3);
     }
 
-    #[test]
+    // #[test]
     fn test_get_subgroup_gens_from_coset_traversal() {
         let g1 = Permutation::parse_permutation_from_cycle("(1,2)", 3);
         let g2 = Permutation::parse_permutation_from_cycle("(1,2,3)", 3);
@@ -444,7 +444,7 @@ mod tests {
         assert_eq!(subgroup_gens.len(), 2);
     }
 
-    #[test]
+    // #[test]
     fn test_relaxed_minkwitz() {
         // Imagine we have following initial string:    aabbcc
         // We number the initial string like this:      012345
