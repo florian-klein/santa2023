@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 pub struct Config {
-    pub enabled_methods: HashSet<String>,
+    pub enabled_methods: HashSet<str>,
     // todo: config for other algorithms (what puzzles to solve, etc.)
 }
 
@@ -18,7 +18,5 @@ impl Config {
 
     pub fn is_method_enabled(&self, method: &str) -> bool {
         self.enabled_methods.contains(method)
-    } 
+    }
 }
-
-

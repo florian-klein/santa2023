@@ -53,15 +53,14 @@ impl PermutationPath {
     }
 
     pub fn to_string(&self, gen_to_str: &Vec<String>) -> String {
-        let mut result = self
+        let result = self
             .arr
             .clone()
             .into_iter()
             .map(|i| gen_to_str[i].clone())
-            .collect::<Vec<_>>();
-        // reverse the order
-        result.reverse();
-        result.join(".")
+            .collect::<Vec<_>>()
+            .join(".");
+        result
     }
 }
 
@@ -150,7 +149,7 @@ impl Permutation {
         result
     }
 
-    pub fn compose_in_place(&mut self, _other: &Permutation) {
+    pub fn compose_in_place(&mut self, other: &Permutation) {
         todo!();
     }
 

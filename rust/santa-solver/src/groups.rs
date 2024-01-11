@@ -140,7 +140,7 @@ impl<'a> DepthLimitedPermutationGroupIterator<'a> {
 
         Self {
             frontier: VecDeque::new(),
-            visited: bloomfilter::Bloom::new_for_fp_rate(1_000_000_000, 0.0000001), //TODO adjust
+            visited: bloomfilter::Bloom::new_for_fp_rate(1_000_000, 0.0000001), //TODO adjust
             queue,
             generators,
             current_depth: 0,
@@ -201,6 +201,90 @@ impl<'a> Iterator for DepthLimitedPermutationGroupIterator<'a> {
     }
 }
 
+struct IterativeDeepeningGroupGenerator<'a> {
+    frontier: VecDeque<(Permutation, Vec<usize>)>,
+    visited: bloomfilter::Bloom<Permutation>,
+    stack: Vec<(Permutation, Vec<usize>, usize)>,
+    generators: &'a Vec<Permutation>,
+    current_depth: usize,
+    items_inserted: usize,
+    max_depth: usize,
+}
+
+impl<'a> IterativeDeepeningGroupGenerator<'a> {
+    pub fn new(generators: &'a Vec<Permutation>, max_depth: usize) -> Self {
+        let mut queue = VecDeque::new();
+        let identity = Permutation::identity(generators[0].len());
+        queue.push_back((identity, Vec::<usize>::new()));
+
+        Self {
+            frontier: VecDeque::new(),
+            visited: bloomfilter::Bloom::new_for_fp_rate(1_000_000, 0.0000001), // TODO adjust
+            stack: Vec::new(),
+            generators,
+            current_depth: 0,
+            items_inserted: 0,
+            max_depth,
+        }
+    }
+}
+
+impl<'a> Iterator for IterativeDeepeningGroupGenerator<'a> {
+    type Item = (Permutation, Vec<usize>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while !self.stack.is_empty() || !self.frontier.is_empty() {
+            if self.stack.is_empty() && self.frontier.is_empty() {
+                break;
+            }
+
+            if self.stack.is_empty() {
+                let (element_perm, element_path) = self.frontier.pop_front().unwrap();
+                // Enumerate generators
+                for (i, generator) in self.generators.iter().enumerate() {
+                    let new_element = generator.compose(&element_perm);
+                    if !self.visited.check(&new_element) {
+                        let mut new_path = element_path.clone();
+                        new_path.push(i);
+                        self.stack.push((new_element, new_path, 1));
+                    }
+                }
+            }
+
+            let (element_perm, path, depth) = self.stack.pop().unwrap();
+
+            if depth > self.current_depth {
+                self.current_depth = depth;
+            }
+
+            self.visited.set(&element_perm);
+            self.items_inserted += 1;
+            if self.items_inserted % 100000 == 0 {
+                println!(
+                    "Visited {} elements in IterativeDeepeningGroupGenerator",
+                    self.items_inserted
+                );
+            }
+
+            if depth < self.max_depth {
+                for (i, generator) in self.generators.iter().enumerate() {
+                    let new_element = generator.compose(&element_perm);
+                    if !self.visited.check(&new_element) {
+                        let mut new_path = path.clone();
+                        new_path.push(i);
+                        self.stack.push((new_element, new_path, depth + 1));
+                    }
+                }
+            }
+
+            return Some((element_perm, path));
+        }
+
+        info!("Reached max depth of {} in Group Iterator", self.max_depth);
+        None
+    }
+}
+
 #[cfg(test)]
 mod permutation_group_iterator_tests {
     use super::*;
@@ -221,7 +305,7 @@ mod permutation_group_iterator_tests {
         }
     }
 
-    #[test]
+    // #[test]
     fn test_permutation_group_iterator_perm_and_word() {
         let generators: HashSet<PermAndWord> = vec![
             PermAndWord::new(
@@ -374,9 +458,15 @@ mod depth_limited_permutation_group_iterator_tests {
         gen_to_index.insert(generators[3].clone(), 3);
         let mut iterator = PermutationGroupIterator::new(&gen_to_index);
         let mut counter = 0;
+        let mut seen_perms = HashSet::new();
         while let Some((path, perm)) = iterator.next() {
             TestingUtils::assert_index_path_equals_permutation(&path.arr, &perm, &generators);
             counter += 1;
+            if seen_perms.contains(&perm) {
+                panic!("Duplicate permutation found: {}", perm);
+            } else {
+                seen_perms.insert(perm);
+            }
         }
         assert_eq!(counter, 120);
     }

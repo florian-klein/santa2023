@@ -9,6 +9,14 @@ use santa_solver_lib::{minkwitz, minkwitz_search, schreier};
 use std::collections::{HashMap, HashSet};
 use std::fs::OpenOptions;
 use std::path::Path;
+
+const USE_DJIKSTRA_SEARCH: bool = false;
+const IMPROVE_STEP_COUNT: usize = 10_000;
+const S: usize = 1_000_000;
+const W: usize = 40;
+const N: usize = 5_000_000;
+const USE_CUSTOM_BASE: bool = false;
+
 fn create_sgs_table_wrapper(
     puzzle: &puzzle::Puzzle,
     gens: &minkwitz::GroupGens,
@@ -19,20 +27,22 @@ fn create_sgs_table_wrapper(
         "Creating new SGS table for puzzle_type {:?}",
         puzzle.puzzle_type,
     );
-    let n = 1000;
-    let s = 50;
-    let w = 40;
-    let improve_steps = 0;
+    let n = N;
+    let s = S;
+    let w = W;
+    // let improve_steps = 1_000_000;
+    let improve_steps = IMPROVE_STEP_COUNT;
 
-    let sgs_table_path = format!("{}/{}.bin", minkwitz_table_path, puzzle.puzzle_type);
+    let sgs_table_path = format!("{}/based_{}.bin", minkwitz_table_path, puzzle.puzzle_type);
     if Path::new(&sgs_table_path).exists() {
-        let mut sgs_table = minkwitz::TransTable::read_from_file(&sgs_table_path);
-        sgs_table.group_elements_processed = 0;
+        let sgs_table = minkwitz::TransTable::read_from_file(&sgs_table_path);
+        // sgs_table.group_elements_processed = 0;
         info!(
             "We found an existing SGS table of length {:?} for this puzzle of type {:?}. Loading it...",
             sgs_table.table.len(),
             puzzle.puzzle_type,
         );
+        info!("The base has a length of {:?}", base.elements.len());
         if improve_steps > 0 {
             info!("Improving the SGS table by {:?} steps...", improve_steps);
             let mut sgs_table = minkwitz::MinkwitzTable::build_short_word_sgs(
@@ -49,7 +59,7 @@ fn create_sgs_table_wrapper(
                     "The SGS table was improved by {:?} steps. Writing to file...",
                     improvement
                 );
-                // sgs_table.write_to_file(&sgs_table_path);
+                sgs_table.write_to_file(&sgs_table_path);
             } else {
                 error!("The SGS table was not improved. Suggest lowering improvement_steps to 0 to avoid unnecessary computation.");
             }
@@ -134,31 +144,33 @@ fn main() {
     let mut relevant_types: HashSet<PuzzleType> = HashSet::new();
     // relevant_types.insert(PuzzleType::GLOBE(3, 33));
     // relevant_types.insert(PuzzleType::GLOBE(33, 3));
-    relevant_types.insert(PuzzleType::GLOBE(8, 25));
+    // relevant_types.insert(PuzzleType::GLOBE(8, 25));
     // relevant_types.insert(PuzzleType::GLOBE(3, 4));
-    // relevant_types.insert(PuzzleType::GLOBE(6, 10));
     // relevant_types.insert(PuzzleType::GLOBE(6, 4));
-    // relevant_types.insert(PuzzleType::CUBE(4));
-    relevant_types.insert(PuzzleType::WREATH(33));
-    relevant_types.insert(PuzzleType::WREATH(21));
+    // relevant_types.insert(PuzzleType::GLOBE(6, 8));
+    // relevant_types.insert(PuzzleType::GLOBE(6, 10));
+    // relevant_types.insert(PuzzleType::GLOBE(6, 10));
+    // relevant_types.insert(PuzzleType::GLOBE(1, 8));
+    // relevant_types.insert(PuzzleType::GLOBE(1, 6));
+    // relevant_types.insert(PuzzleType::GLOBE(1, 16));
+    // relevant_types.insert(PuzzleType::GLOBE(2, 6));
+    // relevant_types.insert(PuzzleType::GLOBE(6, 4));
+    // relevant_types.insert(PuzzleType::CUBE(19));
+    // relevant_types.insert(PuzzleType::WREATH(33));
+    relevant_types.insert(PuzzleType::CUBE(33));
 
     let repeat_rounds = 4;
     let mut round_count = 0;
     while round_count < repeat_rounds {
         round_count += 1;
         for puzzle in &puzzles {
-            if puzzle.num_wildcards > 0 {
-                info!("Wildcard puzzles are not supported yet!. Skipping...");
-                continue;
-            }
-            // for i in 10..100 {
-            //     if puzzle.puzzle_type == PuzzleType::CUBE(i) {
-            //         continue;
-            //     }
-            // }
-            // if !relevant_types.contains(&puzzle.puzzle_type) {
+            // if puzzle.num_wildcards > 0 {
+            //     info!("Wildcard puzzles are not supported yet!. Skipping...");
             //     continue;
             // }
+            if !relevant_types.contains(&puzzle.puzzle_type) {
+                continue;
+            }
             info!(
                 "Solving puzzle {} of type {:?}",
                 puzzle.id, puzzle.puzzle_type,
@@ -185,8 +197,16 @@ fn main() {
                 index_to_perm.push(move_elm.permutation.clone());
                 str_to_gen.insert(move_elm.name.clone(), move_elm.permutation.clone());
             }
-            // let base = get_base_check_if_exists(&puzzle, &puzzles_info, bases_storage_path).unwrap();
-            let base_vec: Vec<usize> = (0..puzzle.initial_state.len()).collect();
+            // basevec from 0 to base length
+            let mut base_vec: Vec<usize>;
+            if USE_CUSTOM_BASE {
+                base_vec =
+                    santa_solver_lib::coordinate_calc::get_coords::get_moves_to_solve(puzzle);
+            } else {
+                base_vec = (0..target.len()).collect();
+            }
+            info!("Base vector: {:?}", base_vec);
+
             let base = minkwitz::GroupBase::new(base_vec);
             let sgs_table: TransTable =
                 create_sgs_table_wrapper(&puzzle, &gens, &base, minkwitz_table_path);
@@ -194,20 +214,48 @@ fn main() {
             // 2) Factorize the target permutation
             let valid_indices: Vec<HashSet<usize>> =
                 schreier::SchreierSims::get_stabilizing_color_gens(&puzzle.goal_string);
-            // todo: i think valid indices is not correct yet
-            let target_pw = PermAndWord::new(target.clone(), vec![]);
-            info!("Searching for a path to the target permutation...");
-            let fact = minkwitz_search::minkwitz_djikstra(
-                valid_indices.clone(),
-                target_pw,
-                sgs_table,
-                1000,
-            );
+            // test that sets are valid, todo: remove
+            let test_set = &valid_indices[0];
+            let test_str: Vec<&str> = puzzle.goal_string.split(";").collect();
+            let mut prev_letter: Option<&str> = None;
+            for elm in test_set {
+                let letter_at_index = test_str[*elm];
+                if let Some(prev) = prev_letter {
+                    assert_eq!(prev, letter_at_index);
+                } else {
+                    prev_letter = Some(letter_at_index);
+                }
+            }
+            let mut fact: Option<Vec<usize>> = None;
+            if USE_DJIKSTRA_SEARCH {
+                let target_pw = PermAndWord::new(target.clone(), vec![]);
+                info!("Searching for a path to the target permutation...");
+                let djikstra_res = minkwitz_search::minkwitz_djikstra(
+                    valid_indices.clone(),
+                    target_pw,
+                    sgs_table,
+                    1000,
+                );
+                if let Some(djikstra_res) = djikstra_res {
+                    fact = Some(djikstra_res.word);
+                } else {
+                    error!("Could not find a path to the target permutation!");
+                    continue;
+                }
+            } else {
+                fact = Some(minkwitz::MinkwitzTable::factorize_minkwitz(
+                    &gens,
+                    &base,
+                    &sgs_table,
+                    &target.inverse(),
+                ));
+            }
             if fact.is_none() {
                 error!("Could not find a path to the target permutation!");
                 continue;
             }
-            let factorization = fact.unwrap().word;
+            // let factorization = fact.unwrap().word;
+            let factorization = fact.unwrap();
 
             if factorization.len() == 0 {
                 return;
@@ -217,6 +265,10 @@ fn main() {
             info!(
                 "Found target path for this problem! Length: {:?}. Index Path is verified!",
                 factorization_length
+            );
+            info!(
+                "Average number of steps to solve one move: {:?}",
+                factorization_length / puzzle.goal_string.len()
             );
             info!("Converting to String and writing to result paths...");
             info!("----------------------------------------");

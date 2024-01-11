@@ -5,7 +5,6 @@ use santa_solver_lib::ktt_solver;
 use santa_solver_lib::puzzle;
 use std::collections::HashMap;
 
-
 fn write_solution_to_file(solution_path: &str, results: &HashMap<usize, String>) {
     debug!("Writing solution to file...");
     let mut writer = csv::Writer::from_path(solution_path).unwrap();

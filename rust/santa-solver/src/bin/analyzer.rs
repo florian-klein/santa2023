@@ -1,6 +1,6 @@
-use std::collections::{HashMap, HashSet};
 use log::debug;
 use santa_solver_lib::{permutation, puzzle};
+use std::collections::{HashMap, HashSet};
 
 fn main() {
     env_logger::init();
@@ -27,12 +27,15 @@ fn main() {
     let puzzles = puzzle::load_puzzles(puzzles_path, &puzzles_info).unwrap();
 
     // Filter the puzzles: Only keep the puzzles with unique facelets
-    let unique_puzzles = puzzles.iter()
-        .filter(|p| p.initial_state.iter()
-            .collect::<std::collections::HashSet<_>>()
-            .len()
-            == p.initial_state.len()
-        )
+    let unique_puzzles = puzzles
+        .iter()
+        .filter(|p| {
+            p.initial_state
+                .iter()
+                .collect::<std::collections::HashSet<_>>()
+                .len()
+                == p.initial_state.len()
+        })
         .collect::<Vec<_>>();
 
     let mut cycles = HashSet::new();
@@ -48,11 +51,10 @@ fn main() {
     }
 
     // Count the number of elements for each cycle length
-    let cycle_orders = cycles.iter()
-        .fold(HashMap::new(), |mut acc, c| {
-            *acc.entry(c.len()).or_insert(0) += 1;
-            acc
-        });
+    let cycle_orders = cycles.iter().fold(HashMap::new(), |mut acc, c| {
+        *acc.entry(c.len()).or_insert(0) += 1;
+        acc
+    });
     // Print the map for orders >= 2 in a sorted order
     let mut cycle_orders = cycle_orders.iter().collect::<Vec<_>>();
     cycle_orders.sort_by(|a, b| a.0.cmp(b.0));

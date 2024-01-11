@@ -2,9 +2,7 @@ use log::{debug, info};
 use santa_solver_lib::permutation::{self};
 use santa_solver_lib::puzzle::{self, PuzzleType};
 use santa_solver_lib::{minkwitz, schreier};
-use std::collections::{HashSet};
-
-
+use std::collections::HashSet;
 
 fn main() {
     env_logger::init();

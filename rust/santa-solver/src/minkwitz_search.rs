@@ -134,7 +134,6 @@ pub fn minkwitz_djikstra(
             // if the current index and the index we are checking are in the table, add the
             // resulting PermAndWord to the priority queue
             if let Some(table_entry) = sgs_table.get(&(current_index, index_omega)) {
-                // println!("Ja!");
                 // if cur_assigned_count > limit {
                 //     continue;
                 // }
@@ -153,7 +152,6 @@ pub fn minkwitz_djikstra(
                 };
                 pq.push(new_perm_and_word);
             } else {
-                error!("Went into else branch");
                 let mut reachable_table_entries: Vec<usize> = Vec::new();
                 // find all indics that can be mapped to current_index
                 for i in current_index..current.perm_and_word.perm.len() {
@@ -161,11 +159,13 @@ pub fn minkwitz_djikstra(
                         reachable_table_entries.push(i);
                     }
                 }
+
                 // for each index that can be mapped to our current_index, check if can map the
                 // element at index index_omega (this element is index) to any of those indices
                 // todo: this is recursive, solve this somehow :eyes:
                 for reaches_cur_index in &reachable_table_entries {
                     if let Some(table_entry) = sgs_table.get(&(*reaches_cur_index, index_omega)) {
+                        error!("table has {:?}", (reaches_cur_index, index_omega));
                         let new_perm_and_word =
                             current.perm_and_word.compose(&table_entry.get_inverse());
                         let next_index =
@@ -188,9 +188,20 @@ pub fn minkwitz_djikstra(
         }
     }
     info!(
-        "Djikstra did not find a path to the target permutation. Failed at index {:?}",
-        max_index_seen
+        "Djikstra did not find a path to the target permutation. Failed at index {:?} with keys: \n {:?}",
+        max_index_seen, sgs_table.table.keys()
     );
+    let mut keys_seen: HashSet<usize> = HashSet::new();
+    for key in sgs_table.table.keys() {
+        keys_seen.insert(key.0);
+        keys_seen.insert(key.1);
+    }
+    for i in 0..target.perm.len() {
+        if !keys_seen.contains(&i) {
+            error!("Missing key {:?}", i);
+        }
+    }
+    // assert that each element is some
     return None;
 }
 

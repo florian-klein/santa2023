@@ -5,6 +5,7 @@ impl SplitCycles {
      * Splits a cycle at the specified index into two new (not necessarily disjoint) cycles.
      * e.g. (1, 2, 3, 4, 5), split_index = 2 -> (1, 2, 3), (1, 4, 5)
      */
+    // disable never used warning because this is used in the tests
     #[allow(dead_code)]
     pub fn split_cycle(cycle: Vec<usize>, split_index: usize) -> Vec<Vec<usize>> {
         let cycle_len = cycle.len();

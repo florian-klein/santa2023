@@ -1,4 +1,4 @@
-use crate::groups::PermutationGroupIterator;
+use crate::groups::{DepthLimitedPermutationGroupIterator, PermutationGroupIterator};
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -34,7 +34,7 @@ pub struct GroupGen {
 
 #[derive(Debug)]
 pub struct GroupGens {
-    elements: Vec<GroupGen>,
+    pub elements: Vec<GroupGen>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -245,42 +245,20 @@ impl MinkwitzTable {
         base: &GroupBase,
         nu: &TransTable,
         target: &Permutation,
-        valid_indices: &Vec<HashSet<usize>>,
     ) -> Vec<usize> {
         // sort valid indices based on the first element in the set
-        let mut sorted_valid_indices: Vec<Vec<usize>> = valid_indices
-            .iter()
-            .map(|it| it.iter().map(|it| *it).collect())
-            .collect();
-        // sort each vector in sorted_valid_indices, then sort the vectors based on the first element
-        for i in 0..sorted_valid_indices.len() {
-            sorted_valid_indices[i].sort();
-        }
-        sorted_valid_indices.sort_by(|a, b| {
-            let a_first = a.iter().next().unwrap();
-            let b_first = b.iter().next().unwrap();
-            a_first.cmp(b_first)
-        });
         let mut list: Vec<usize> = Vec::new();
         let mut perm = target.inverse().clone();
         for i in 0..base.elements.len() {
             let omega = perm.p[base.elements[i]] - 1;
             // testing
-            let mut set_where_i_is_in = None;
-            for set in sorted_valid_indices.iter() {
-                if set.contains(&i) {
-                    set_where_i_is_in = Some(set);
-                    println!("set: {:?}", set);
-                    break;
-                }
-            }
-            for elm in set_where_i_is_in.unwrap() {
-                let _subelm = nu.table.get(&(*elm, omega));
-            }
-            // testing
             let table_entry = nu.table.get(&(i, omega));
             if !table_entry.is_some() {
                 debug!("We could not find a factorization!");
+                debug!(
+                    "Failed at index {}. This is element {}. Element was at position {}",
+                    i, base.elements[i], omega
+                );
                 return Vec::new();
             }
             let table_entry = table_entry.unwrap();
@@ -290,6 +268,7 @@ impl MinkwitzTable {
         }
         if perm != Permutation::identity(target.len()) {
             debug!("We could not find a factorization!");
+            debug!("Perm is {:?}", perm);
             return Vec::new();
         }
         debug!("We found a factorization of length {}", list.len());
@@ -327,17 +306,33 @@ impl MinkwitzTable {
         let mut limit = w;
         let mut count = 0;
         let mut gen_perm_to_index: HashMap<Permutation, usize> = HashMap::new();
+        let mut index_to_perm_and_word: Vec<Permutation> = Vec::new();
         for i in 0..gens.elements.len() {
             gen_perm_to_index.insert(gens.elements[i].perm.clone(), i);
+            index_to_perm_and_word.push(gens.elements[i].perm.clone());
         }
-        let group_iterator = PermutationGroupIterator::new(&gen_perm_to_index);
-        for (perm_path, perm) in group_iterator {
+        let group_iterator =
+            DepthLimitedPermutationGroupIterator::new(&index_to_perm_and_word, 1000);
+        for (perm, perm_path) in group_iterator {
             if count < start_index_from {
                 count += 1;
                 continue;
             }
             if count == start_index_from {
-                debug!("SGS Generation: Starting at group element {}", count);
+                debug!(
+                    "SGS Generation: Starting at group element {}",
+                    start_index_from
+                );
+                debug!("Current length of group words is {}", perm_path.len());
+                debug!("For example, the current element has path {:?}", perm_path);
+                debug!(
+                    "Overall, the group has a generating set of size {}",
+                    gens.elements.len()
+                );
+                debug!(
+                    "The current base has a length of: {:?}",
+                    base.elements.len()
+                );
             }
             if count >= max || Self::is_table_full(permutation_size, &gens, &mu_table) {
                 debug!("SGS Generation: Stopping as table is full or max reached");
@@ -346,7 +341,7 @@ impl MinkwitzTable {
             }
             let pw = PermAndWord {
                 perm: perm.clone(),
-                word: perm_path.arr,
+                word: perm_path,
                 news: true,
                 inverse: Vec::new(),
             };
@@ -376,6 +371,10 @@ impl MinkwitzTable {
         mu_table: &mut TransTable,
     ) -> PermAndWord {
         let j = t.perm.p[base.elements[i]] - 1;
+        // if i == 9 {
+        //     debug!("i: {}, j: {}, t: {:?}", i, j, t);
+        //     debug!("table contains? {:?}", mu_table.get(&(i, j)));
+        // }
         let t_inv = t.get_inverse();
         let mut result = PermAndWord::identity(gens.elements[0].perm.len());
         // Let x = g(k_{i+1}) \in O_i. Do we have an entry for B_i(x)?
@@ -426,14 +425,14 @@ impl MinkwitzTable {
                         let x_elm = x_elm.unwrap().clone();
                         let y_elm = y_elm.unwrap().clone();
                         if x_elm.news || y_elm.news {
-                            let mut t = y_elm.compose(&x_elm);
+                            let t = y_elm.compose(&x_elm);
                             Self::one_round(gens, base, limit, j, mu_table, t);
-                            t = x_elm.compose(&y_elm);
-                            Self::one_round(gens, base, limit, j, mu_table, t);
-                            t = x_elm.get_inverse().compose(&y_elm);
-                            Self::one_round(gens, base, limit, j, mu_table, t);
-                            t = y_elm.get_inverse().compose(&x_elm);
-                            Self::one_round(gens, base, limit, j, mu_table, t);
+                            // t = x_elm.compose(&y_elm);
+                            // Self::one_round(gens, base, limit, j, mu_table, t);
+                            // t = x_elm.get_inverse().compose(&y_elm);
+                            // Self::one_round(gens, base, limit, j, mu_table, t);
+                            // t = y_elm.get_inverse().compose(&x_elm);
+                            // Self::one_round(gens, base, limit, j, mu_table, t);
                         }
                     }
                 }
@@ -479,8 +478,12 @@ impl MinkwitzTable {
                     for p in new_pts {
                         if let Some(table_entry) = mu_table.get(&(i, x1.perm.p[p] - 1)) {
                             let t1 = table_entry.compose(&x1);
-                            if t1.word.len() < limit {
-                                mu_table.insert((i, p), t1);
+                            if let Some(cur_entry) = mu_table.get(&(j, k)) {
+                                if t1.word.len() < cur_entry.word.len() {
+                                    mu_table.insert((j, k), t1);
+                                }
+                            } else {
+                                mu_table.insert((j, k), t1);
                             }
                         }
                     }
@@ -493,9 +496,12 @@ impl MinkwitzTable {
 pub fn is_valid_sgs(tt: &TransTable, base: &GroupBase) {
     let mut result = true;
     for i in 0..base.elements.len() {
-        let p = tt.get(&(i, i)).unwrap().perm.clone();
+        let t_elm = tt.get(&(i, i)).unwrap();
+        let p = t_elm.perm.clone();
         if !p.is_identity() {
             println!("p {:?} is not identity", (i, i));
+            println!("Cycle id of p is: {:?}", p.compute_info().cycles_id);
+            println!("Word is: {:?}", t_elm);
             result = false;
         }
         for j in 0..base.elements.len() {
@@ -640,8 +646,7 @@ mod test {
         let valid_indices = crate::schreier::SchreierSims::get_stabilizing_color_gens(
             &"7;3;4;2;5;8;1;6".to_string(),
         );
-        let fact =
-            super::MinkwitzTable::factorize_minkwitz(&gens, &base, &tt, &target, &valid_indices);
+        let fact = super::MinkwitzTable::factorize_minkwitz(&gens, &base, &tt, &target);
         crate::testing_utils::TestingUtils::assert_index_path_equals_permutation(
             &fact,
             &target,
@@ -724,8 +729,7 @@ mod test {
         let valid_indices = crate::schreier::SchreierSims::get_stabilizing_color_gens(
             &"1;2;3;4;5;6;7;8".to_string(),
         );
-        let fact =
-            super::MinkwitzTable::factorize_minkwitz(&gens, &base, &tt, &target, &valid_indices);
+        let fact = super::MinkwitzTable::factorize_minkwitz(&gens, &base, &tt, &target);
         crate::testing_utils::TestingUtils::assert_index_path_equals_permutation(
             &fact,
             &target,

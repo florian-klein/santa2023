@@ -18,3 +18,4 @@ rust-schreier = { path = "../rust-schreier-sims"}
 [lib]
 name = "santa_solver_lib"
 path = "src/lib.rs"
+
