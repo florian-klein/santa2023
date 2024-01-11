@@ -1,5 +1,5 @@
 use crate::minkwitz::PermAndWord;
-use crate::permutation::{Permutation, PermutationIndex, PermutationPath};
+use crate::permutation::{CompressedPermutation, Permutation, PermutationIndex, PermutationPath};
 use log::error;
 use log::info;
 use std::collections::HashMap;
@@ -201,7 +201,86 @@ impl<'a> Iterator for DepthLimitedPermutationGroupIterator<'a> {
     }
 }
 
-struct IterativeDeepeningGroupGenerator<'a> {
+pub struct DepthLimitedPermutationGroupIteratorCompressed<'a> {
+    frontier: VecDeque<(CompressedPermutation, Vec<usize>)>,
+    visited: bloomfilter::Bloom<CompressedPermutation>,
+    items_inserted: usize,
+    queue: VecDeque<(CompressedPermutation, Vec<usize>)>,
+    generators: &'a Vec<CompressedPermutation>,
+    current_depth: usize,
+    max_depth: usize,
+}
+
+impl<'a> DepthLimitedPermutationGroupIteratorCompressed<'a> {
+    pub fn new(generators: &'a Vec<CompressedPermutation>, max_depth: usize) -> Self {
+        let mut queue = VecDeque::new();
+        let identity = CompressedPermutation::identity(generators[0].len());
+        queue.push_back((identity, Vec::<usize>::new()));
+
+        Self {
+            frontier: VecDeque::new(),
+            visited: bloomfilter::Bloom::new_for_fp_rate(1_000_000, 0.0000001), //TODO adjust
+            queue,
+            generators,
+            current_depth: 0,
+            items_inserted: 0,
+            max_depth,
+        }
+    }
+}
+
+impl<'a> Iterator for DepthLimitedPermutationGroupIteratorCompressed<'a> {
+    type Item = (CompressedPermutation, Vec<usize>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current_depth == self.max_depth {
+            info!("Reached max depth of {} in Group Iterator", self.max_depth);
+            return None;
+        }
+        if self.frontier.is_empty() {
+            if !self.queue.is_empty() {
+                let (element_perm, element_path) = self.queue.pop_front().unwrap();
+                // Enumerate generators
+                for (i, generator) in self.generators.iter().enumerate() {
+                    let new_element = generator.compose(&element_perm);
+                    if !self.visited.check(&new_element) {
+                        let mut new_path = element_path.clone();
+                        new_path.push(i);
+                        self.frontier.push_back((new_element, new_path));
+                    }
+                }
+            } else {
+                error!("Error in DepthLimitedCompressedPermutationGroupIterator: Queue is empty");
+                return None;
+            }
+        }
+        let result = self.frontier.pop_front();
+        if self.queue.is_empty() && result.is_none() {
+            info!("Group Iterator Frontier is now empty, proceeding ...");
+            return None;
+        } else if result.is_none() {
+            return self.next();
+        }
+
+        let (element_perm, path) = result.unwrap();
+
+        self.visited.set(&element_perm);
+        self.items_inserted += 1;
+        if self.items_inserted % 100000 == 0 {
+            info!(
+                "Visited {} elements in DepthLimitedCompressedPermutationGroupIterator",
+                self.items_inserted
+            );
+        }
+        self.queue.push_back((element_perm.clone(), path.clone()));
+        if path.len() > self.current_depth {
+            self.current_depth = path.len();
+        }
+        return Some((element_perm, path));
+    }
+}
+
+pub struct IterativeDeepeningGroupGenerator<'a> {
     frontier: VecDeque<(Permutation, Vec<usize>)>,
     visited: bloomfilter::Bloom<Permutation>,
     stack: Vec<(Permutation, Vec<usize>, usize)>,
@@ -216,6 +295,7 @@ impl<'a> IterativeDeepeningGroupGenerator<'a> {
         let mut queue = VecDeque::new();
         let identity = Permutation::identity(generators[0].len());
         queue.push_back((identity, Vec::<usize>::new()));
+        let gen_length = generators[0].len();
 
         Self {
             frontier: VecDeque::new(),
@@ -224,7 +304,7 @@ impl<'a> IterativeDeepeningGroupGenerator<'a> {
             generators,
             current_depth: 0,
             items_inserted: 0,
-            max_depth,
+            max_depth: gen_length ^ max_depth,
         }
     }
 }
@@ -262,6 +342,94 @@ impl<'a> Iterator for IterativeDeepeningGroupGenerator<'a> {
             if self.items_inserted % 100000 == 0 {
                 println!(
                     "Visited {} elements in IterativeDeepeningGroupGenerator",
+                    self.items_inserted
+                );
+            }
+
+            if depth < self.max_depth {
+                for (i, generator) in self.generators.iter().enumerate() {
+                    let new_element = generator.compose(&element_perm);
+                    if !self.visited.check(&new_element) {
+                        let mut new_path = path.clone();
+                        new_path.push(i);
+                        self.stack.push((new_element, new_path, depth + 1));
+                    }
+                }
+            }
+
+            return Some((element_perm, path));
+        }
+
+        info!("Reached max depth of {} in Group Iterator", self.max_depth);
+        None
+    }
+}
+
+/*
+* Iterative Deepening Iterator for Compressed Permutations
+*/
+
+pub struct IterativeDeepeningCompressed<'a> {
+    frontier: VecDeque<(CompressedPermutation, Vec<usize>)>,
+    visited: bloomfilter::Bloom<CompressedPermutation>,
+    stack: Vec<(CompressedPermutation, Vec<usize>, usize)>,
+    generators: &'a Vec<CompressedPermutation>,
+    current_depth: usize,
+    items_inserted: usize,
+    max_depth: usize,
+}
+
+impl<'a> IterativeDeepeningCompressed<'a> {
+    pub fn new(generators: &'a Vec<CompressedPermutation>, max_depth: usize) -> Self {
+        let mut queue = VecDeque::new();
+        let identity = CompressedPermutation::identity(generators[0].len());
+        queue.push_back((identity, Vec::<usize>::new()));
+
+        Self {
+            frontier: VecDeque::new(),
+            visited: bloomfilter::Bloom::new_for_fp_rate(1_000_000, 0.0000001), // TODO adjust
+            stack: Vec::new(),
+            generators,
+            current_depth: 0,
+            items_inserted: 0,
+            max_depth,
+        }
+    }
+}
+
+impl<'a> Iterator for IterativeDeepeningCompressed<'a> {
+    type Item = (CompressedPermutation, Vec<usize>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while !self.stack.is_empty() || !self.frontier.is_empty() {
+            if self.stack.is_empty() && self.frontier.is_empty() {
+                break;
+            }
+
+            if self.stack.is_empty() {
+                let (element_perm, element_path) = self.frontier.pop_front().unwrap();
+                // Enumerate generators
+                for (i, generator) in self.generators.iter().enumerate() {
+                    let new_element = generator.compose(&element_perm);
+                    if !self.visited.check(&new_element) {
+                        let mut new_path = element_path.clone();
+                        new_path.push(i);
+                        self.stack.push((new_element, new_path, 1));
+                    }
+                }
+            }
+
+            let (element_perm, path, depth) = self.stack.pop().unwrap();
+
+            if depth > self.current_depth {
+                self.current_depth = depth;
+            }
+
+            self.visited.set(&element_perm);
+            self.items_inserted += 1;
+            if self.items_inserted % 100000 == 0 {
+                println!(
+                    "Visited {} elements in IterativeDeepeningCompressed",
                     self.items_inserted
                 );
             }

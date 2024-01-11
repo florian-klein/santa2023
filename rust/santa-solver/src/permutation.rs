@@ -3,6 +3,7 @@ use log::debug;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
+use std::hash::{Hash, Hasher};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Permutation {
@@ -62,11 +63,6 @@ impl PermutationPath {
             .join(".");
         result
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct CompressedPermutation {
-    m: HashMap<usize, usize>,
 }
 
 impl Permutation {
@@ -189,7 +185,7 @@ impl Permutation {
                 m.insert(i + 1, self.p[i]);
             }
         }
-        CompressedPermutation::new(m)
+        CompressedPermutation::new(m, self.p.len())
     }
 
     //early exit, if a cycle is longer than max
@@ -313,14 +309,24 @@ impl Display for PermutationInfo<'_> {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompressedPermutation {
+    m: HashMap<usize, usize>,
+    perm_length: usize,
+}
+
 impl CompressedPermutation {
-    pub fn new(m: HashMap<usize, usize>) -> CompressedPermutation {
-        CompressedPermutation { m }
+    pub fn new(m: HashMap<usize, usize>, n: usize) -> CompressedPermutation {
+        CompressedPermutation { m, perm_length: n }
     }
 
-    pub fn identity() -> CompressedPermutation {
+    pub fn identity(n: usize) -> CompressedPermutation {
         let m = HashMap::new();
-        CompressedPermutation::new(m)
+        CompressedPermutation::new(m, n)
+    }
+
+    pub fn is_identity(&self) -> bool {
+        return self.m.len() == 0;
     }
 
     pub fn get(&self, i: usize) -> usize {
@@ -328,6 +334,10 @@ impl CompressedPermutation {
             Some(j) => *j,
             None => i,
         }
+    }
+
+    pub fn len(&self) -> usize {
+        return self.perm_length;
     }
 
     pub fn compose(&self, other: &CompressedPermutation) -> CompressedPermutation {
@@ -340,7 +350,7 @@ impl CompressedPermutation {
                 m.insert(*i, *j);
             }
         }
-        CompressedPermutation::new(m)
+        CompressedPermutation::new(m, other.len())
     }
 
     pub fn inverse(&self) -> CompressedPermutation {
@@ -348,7 +358,15 @@ impl CompressedPermutation {
         for (i, j) in self.m.iter() {
             m.insert(*j, *i);
         }
-        CompressedPermutation::new(m)
+        CompressedPermutation::new(m, self.len())
+    }
+}
+
+impl Hash for CompressedPermutation {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let mut index_pairs: Vec<(usize, usize)> = self.m.clone().into_iter().collect();
+        index_pairs.sort();
+        index_pairs.hash(state);
     }
 }
 
@@ -361,6 +379,12 @@ impl Display for CompressedPermutation {
             write!(f, "{}: {}, ", key, self.m[key])?;
         }
         write!(f, "}}")
+    }
+}
+
+impl PartialEq for CompressedPermutation {
+    fn eq(&self, other: &CompressedPermutation) -> bool {
+        return self.m == other.m;
     }
 }
 
@@ -603,7 +627,7 @@ mod compressed_permutation_tests {
     #[test]
     fn test_new() {
         let m = HashMap::new();
-        let cp = CompressedPermutation::new(m);
+        let cp = CompressedPermutation::new(m, 0);
         assert_eq!(cp.m, HashMap::new());
     }
 
@@ -612,13 +636,13 @@ mod compressed_permutation_tests {
         let mut m = HashMap::new();
         m.insert(1, 2);
         m.insert(2, 3);
-        let cp = CompressedPermutation::new(m);
+        let cp = CompressedPermutation::new(m, 3);
         assert_eq!(format!("{}", cp), "{1: 2, 2: 3, }");
     }
 
     #[test]
     fn test_identity() {
-        let cp = CompressedPermutation::identity();
+        let cp = CompressedPermutation::identity(0);
         assert_eq!(cp.m, HashMap::new());
     }
 
@@ -627,7 +651,7 @@ mod compressed_permutation_tests {
         let mut m = HashMap::new();
         m.insert(1, 2);
         m.insert(2, 3);
-        let cp = CompressedPermutation::new(m);
+        let cp = CompressedPermutation::new(m, 3);
         assert_eq!(cp.get(1), 2);
         assert_eq!(cp.get(2), 3);
         assert_eq!(cp.get(3), 3);
@@ -639,11 +663,11 @@ mod compressed_permutation_tests {
         m.insert(1, 2);
         m.insert(2, 3);
         m.insert(3, 1);
-        let cp = CompressedPermutation::new(m);
+        let cp = CompressedPermutation::new(m, 3);
         let mut m = HashMap::new();
         m.insert(2, 3);
         m.insert(3, 2);
-        let cp2 = CompressedPermutation::new(m);
+        let cp2 = CompressedPermutation::new(m, 3);
         let cp3 = cp.compose(&cp2);
         let mut m = HashMap::new();
         m.insert(1, 2);
@@ -657,7 +681,7 @@ mod compressed_permutation_tests {
         let mut m = HashMap::new();
         m.insert(1, 2);
         m.insert(2, 3);
-        let cp = CompressedPermutation::new(m);
+        let cp = CompressedPermutation::new(m, 3);
         let cp2 = cp.inverse();
         let mut m = HashMap::new();
         m.insert(2, 1);

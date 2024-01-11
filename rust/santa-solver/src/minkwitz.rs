@@ -229,7 +229,6 @@ impl TransTable {
 
 impl MinkwitzTable {
     pub fn check_perm_is_target(perm: &Permutation, valid_indices: &Vec<HashSet<usize>>) -> bool {
-        // check that for each set in valid_indices, the entry at index is in the set
         for index_set in valid_indices {
             for index in index_set {
                 let omega = perm.p[*index] - 1;
@@ -371,10 +370,6 @@ impl MinkwitzTable {
         mu_table: &mut TransTable,
     ) -> PermAndWord {
         let j = t.perm.p[base.elements[i]] - 1;
-        // if i == 9 {
-        //     debug!("i: {}, j: {}, t: {:?}", i, j, t);
-        //     debug!("table contains? {:?}", mu_table.get(&(i, j)));
-        // }
         let t_inv = t.get_inverse();
         let mut result = PermAndWord::identity(gens.elements[0].perm.len());
         // Let x = g(k_{i+1}) \in O_i. Do we have an entry for B_i(x)?
@@ -427,12 +422,6 @@ impl MinkwitzTable {
                         if x_elm.news || y_elm.news {
                             let t = y_elm.compose(&x_elm);
                             Self::one_round(gens, base, limit, j, mu_table, t);
-                            // t = x_elm.compose(&y_elm);
-                            // Self::one_round(gens, base, limit, j, mu_table, t);
-                            // t = x_elm.get_inverse().compose(&y_elm);
-                            // Self::one_round(gens, base, limit, j, mu_table, t);
-                            // t = y_elm.get_inverse().compose(&x_elm);
-                            // Self::one_round(gens, base, limit, j, mu_table, t);
                         }
                     }
                 }
