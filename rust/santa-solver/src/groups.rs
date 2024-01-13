@@ -187,7 +187,7 @@ impl<'a> Iterator for DepthLimitedPermutationGroupIterator<'a> {
 
         self.visited.set(&element_perm);
         self.items_inserted += 1;
-        if self.items_inserted % 100000 == 0 {
+        if self.items_inserted % 10000 == 0 {
             info!(
                 "Visited {} elements in DepthLimitedPermutationGroupIterator",
                 self.items_inserted

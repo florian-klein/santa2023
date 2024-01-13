@@ -14,7 +14,7 @@ const USE_DJIKSTRA_SEARCH: bool = false;
 const IMPROVE_STEP_COUNT: usize = 10_000;
 const S: usize = 1_000_000;
 const W: usize = 40;
-const N: usize = 5_000_000;
+const N: usize = 100_000;
 const USE_CUSTOM_BASE: bool = false;
 
 fn create_sgs_table_wrapper(
@@ -157,7 +157,7 @@ fn main() {
     // relevant_types.insert(PuzzleType::GLOBE(6, 4));
     // relevant_types.insert(PuzzleType::CUBE(19));
     // relevant_types.insert(PuzzleType::WREATH(33));
-    relevant_types.insert(PuzzleType::CUBE(3));
+    relevant_types.insert(PuzzleType::CUBE(19));
 
     let repeat_rounds = 4;
     let mut round_count = 0;
