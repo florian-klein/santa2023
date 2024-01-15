@@ -1,6 +1,8 @@
 pub mod conjugated_search;
 pub mod coordinate_calc;
+pub mod cubes;
 pub mod groups;
+pub mod iterators;
 pub mod kalka_teicher_tsaban;
 pub mod ktt_solver;
 pub mod minkwitz;
