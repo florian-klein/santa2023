@@ -27,6 +27,17 @@ fn main() {
 
     // Generate transpositions for each puzzle type
     for (puzzle_type, moves) in puzzles_info.iter() {
+        match puzzle_type {
+            PuzzleType::GLOBE(_, _) => {
+                // Skip the globe for now
+                continue;
+            }
+            PuzzleType::WREATH(_) => {
+                // Skip the wreath for now
+                continue;
+            }
+            _ => {}
+        }
         let max_depth = match puzzle_type {
             PuzzleType::CUBE(_) => 100000,
             PuzzleType::GLOBE(n, m) => {
