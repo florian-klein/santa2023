@@ -157,7 +157,7 @@ fn main() {
     // relevant_types.insert(PuzzleType::GLOBE(6, 4));
     // relevant_types.insert(PuzzleType::CUBE(19));
     // relevant_types.insert(PuzzleType::WREATH(33));
-    relevant_types.insert(PuzzleType::CUBE(19));
+    // relevant_types.insert(PuzzleType::CUBE(19));
 
     let repeat_rounds = 4;
     let mut round_count = 0;
