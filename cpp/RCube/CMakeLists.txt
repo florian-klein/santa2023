@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.16)
+set(CMAKE_OSX_ARCHITECTURES "arm64")
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -arch arm64")
+project(RCube VERSION 0.1 LANGUAGES CXX)
+add_subdirectory(RCube)

@@ -1,0 +1,13 @@
+add_executable(RCube
+    Cube.cpp
+    Cube.h
+    CubeViewer.cpp
+    CubeViewer.h
+    Face.cpp
+    Face.h
+    Source.cpp
+    TinyPngOut.cpp
+    TinyPngOut.hpp
+    utils.cpp
+    utils.h
+)
