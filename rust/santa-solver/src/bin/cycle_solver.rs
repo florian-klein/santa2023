@@ -47,6 +47,15 @@ fn main() {
     }
 
     for (t, _) in puzzles_info.iter() {
+        match t {
+            puzzle::PuzzleType::CUBE(_) => {
+                continue;
+            }
+            puzzle::PuzzleType::WREATH(_) => {
+                continue;
+            }
+            puzzle::PuzzleType::GLOBE(_, _) => {}
+        }
         let filename = format!("{}/{}_2c.csv", cycles_path, t);
         // Check whether the file exists
         if Path::new(&filename).exists() {

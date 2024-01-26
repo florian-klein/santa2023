@@ -294,4 +294,33 @@ pub mod test {
             init_string, expected_string, op_string, puzzle_type, num_wildcards,
         );
     }
+    // case 0
+    // #[test]
+    // fn test_problem_validator() {
+    //     let puzzle_type = crate::puzzle::PuzzleType::CUBE(2);
+    //     let init_str: String = "A;A;A;A;B;B;B;B;C;C;C;C;D;D;D;D;E;E;E;E;F;F;F;F".to_string();
+    //     let goal_str: String = "D;E;D;A;E;B;A;B;C;A;C;A;D;C;D;F;F;F;E;E;B;F;B;C".to_string();
+    //     let op_string: String = "-r1.-d0.-d0.r1.r0.d0.-r0.-d0.r0.d0.-r0.-d0.r0.d0.-r0.-d0.-d1.-d0.r0.d0.-r0.-d0.r0.d0.-r0.-d0.r0.d0.-r0.-d0.r0.d0.-r0.-d0.r0.d0.-r0.-d0.-d1.-d0.r0.d0.-r0.-d0.-d1.-d0.r0.d0.-r0.-d0.r1.r1.-r0.-r0.d1.d1.d1.-r0.-d1.-r1.d1.r0.-d1.r1.d1.-r0.-d1.-r1.d1.r0.-d1.r1.d1.d1.r0.d0.-r0.-d0.r0.d0.-r0.-d0.r0.d0.-r0.-d0.r0.d0.-r0.-d0.d1.r0.d0.-r0.-d0.r0.d0.-r0.-d0.r0.d0.-r0.-d0.r0.d0.-r0.-d0.d1.d1.r0.d0.-r0.-d0.r0.d0.-r0.-d0.r0.d0.-r0.-d0.r0.d0.-r0.-d0.d1.r1.r1.-r0.-r0".to_string();
+    //     crate::testing_utils::TestingUtils::assert_applying_sol_string_to_initial_string_results_in_target(
+    //         goal_str,
+    //         init_str,
+    //         op_string,
+    //         puzzle_type,
+    //         0,
+    //     );
+    // }
+    #[test]
+    fn test_problem_validator() {
+        let puzzle_type = crate::puzzle::PuzzleType::CUBE(3);
+        let init_str: String = "A;A;A;A;A;A;A;A;A;B;B;B;B;B;B;B;B;B;C;C;C;C;C;C;C;C;C;D;D;D;D;D;D;D;D;D;E;E;E;E;E;E;E;E;E;F;F;F;F;F;F;F;F;F".to_string();
+        let goal_str: String = "A;A;E;C;F;F;C;C;C;D;B;D;D;B;A;B;F;F;A;E;B;D;E;B;D;B;B;A;B;D;F;D;F;F;A;A;E;A;F;C;C;C;C;D;F;C;D;E;E;A;E;B;E;E".to_string();
+        let op_string: String = "-f1.-f1.-r0.d2.r0.d2.d2.r0.-d2.-r0.d2.r0.-d2.-r0.d2.r0.-d2.-r0.d2.d0.r0.-d2.-r0.d2.d0.d2.r0.-d2.-r0.d2.r0.-d2.-r0.d2.r0.-d2.-r0.d2.d0.d2.d2.r0.-d2.-r0.d2.r0.-d2.-r0.d2.r0.-d2.-r0.d2.r0.-d2.-r0.d2.r0.-d2.-r0.d2.r2.r2.-r0.-r0.-d0.-d0.-d0.-d0.r0.-d2.-r0.d2.r0.-d2.-r0.d2.r0.-d2.-r0.d2.r0.-d2.-r0.d2.-d0.-d0.r0.-d2.-r0.d2.r0.-d2.-r0.d2.-d0.r2.r2.-r0.-r0.-d2.-r0.d1.-r0.-d0.r0.-f0.r0.f0.-r0.-d1.r0.-f0.-r0.f0.-r0.d0.r0.r0.d2.f2.f2.-r0.-r0.-r0.-r0.f2.f2.-f2.-r0.-r0.-r0.-r0.f2.-r0.-r0.d1.-r0.-d0.r0.-f0.r0.f0.-r0.-d1.r0.-f0.-r0.f0.-r0.d0.r0.-r0.-r0.-r0.d1.-r0.-d0.r0.-f0.r0.f0.-r0.-d1.r0.-f0.-r0.f0.-r0.d0.r0.r0.r0.d1.-r0.-d0.r0.-f0.r0.f0.-r0.-d1.r0.-f0.-r0.f0.-r0.d0.r0.-r0.-d0.-d0.r0.-r0.-d0.-d0.d2.d2.-r0.r0.d2.d2.f0.d1.-r0.-d0.r0.-f0.r0.f0.-r0.-d1.r0.-f0.-r0.f0.-r0.d0.r0.-f0.d1.-r0.-d0.r0.-f0.r0.f0.-r0.-d1.r0.-f0.-r0.f0.-r0.d0.r0.-f0.d1.-r0.-d0.r0.-f0.r0.f0.-r0.-d1.r0.-f0.-r0.f0.-r0.d0.r0.f0.-f0.-f0.d1.-r0.-d0.r0.-f0.r0.f0.-r0.-d1.r0.-f0.-r0.f0.-r0.d0.r0.-f0.-f0.-d2.-r0.d2.-r2.r2.-d2.r2.r2.r2.r2.d0.r2.-r2.-d0.f2.f2.r2.r2.r2.r2.f2.f2.d2.d2.-r2.r2.d2.d2.-d0.-d0.r2.-r2.-d0.-d0.r2.-r2.-r2.r1.r1.-f0.-r1.-f0.-f0.r1.-f0.r1.r1.r2.-d2.-r2.r2.d2.-d0.r2.-r2.d0.r0.d2.f2.f2.-r0.-r0.d2.-r2.-r2.d0.r2.f0.r2.-f0.-r2.r1.r1.-f0.-r1.-f0.-f0.r1.-f0.r1.r1.r2.f0.-r2.-f0.-r2.-d0.r2.r2.-d2.r2.r2.r2.r2.f2.f2.r2.r2.r2.r2.f2.f2.d2.d2.-r2.r2.d2.d2.-d0.-d0.r2.-r2.-d0.-d0.r2.-r2.-r2.r2.-d2.-r2.r2.d2.-d0.r2.-r2.d0.-r0.-r0.f2.f2.-f2.-r0.-r0.d2.-r2.r2.-d2.f2.f2.r2.r2.r2.r2.f2.f2.d2.d2.-r2.r2.d2.d2.-d0.-d0.r2.-r2.-d0.-d0.r2.r1.r1.-f0.-r1.-f0.-f0.r1.-f0.r1.r1.-r2.-r2.r2.-d2.-r2.r2.d2.-d0.r2.-r2.d0.-r0.-r0.f2.-r0.-r0.f2.f2.r2.r2.r2.r2.f2.f2.d2.d2.-r2.r2.d2.d2.-d0.-d0.r2.-r2.-d0.-d0.r2.-r2.-r2.r2.-d2.-r2.r2.d2.-d0.r2.-r2.d0.r2.f0.r2.-f0.-r2.d0.d0.d0.r1.r1.-f0.-r1.-f0.-f0.r1.-f0.r1.r1.-d0.-d0.-d0.r2.f0.-r2.-f0.-r2.-d0.r2.-r2.d0.-r0.-r0.-r0.f2.f2.r2.r2.r2.r2.f2.f2.-d0.-d0.r2.-r2.-d0.-d0.r2.-r2.-r2.r2.-d2.-r2.r2.d2.-d0.r2.r1.r1.-f0.-r1.-f0.-f0.r1.-f0.r1.r1.-r2.d0.r0.r0.d2.d2.-r2.r2.d2.d2.r2.-r2.-r2.r2.-d2.-r2.r2.d2.r1.r1.-f0.-r1.-f0.-f0.r1.-f0.r1.r1.-d0.r2.-r2.d0.-r0.-d0.-d0.r0.d0.r2.-r2.-d0.d2.d2.-r2.r2.d2.d2.-r2.d0.d0.r1.r1.-f0.-r1.-f0.-f0.r1.-f0.r1.r1.-d0.-d0.r2.-d2.-r2.r2.d2.-r0.-d0.-d0.d2.d2.-r0.d2.-r2.r2.-d2.-d0.-d0.r2.-r2.-d0.-d0.-d0.r2.-r2.d0.r0.d2.d2.f0.-d2.-r2.r1.r1.-f0.-r1.-f0.-f0.r1.-f0.r1.r1.r2.d2.-d0.r2.-r2.d0.-f0.-r2.d0.r2.f0.r2.-f0.-r2.d0.d0.d0.r1.r1.-f0.-r1.-f0.-f0.r1.-f0.r1.r1.-d0.-d0.-d0.r2.f0.-r2.-f0.-r2.-d0.r2.-d0.r2.-r2.d0.-f0.d1.-r0.-d0.r0.-f0.r0.f0.-r0.-d1.r0.-f0.-r0.f0.-r0.d0.r0.-d0.r2.-r2.d0.f0.-f0.-f0.-f0.-f0.-d2.-r0.r0.d2.f2.f2.-r0.-r0.-r0.-r0.f2.f2.-f2.-r0.-r0.-r0.-r0.f2.-r0.-r0.-r0.-r0.-r0.r0.r0.-r0.-d0.-d0.r0.-r0.-d0.-d0.d2.d2.-r0.r0.d2.d2.f0.d1.-r0.-d0.r0.-f0.r0.f0.-r0.-d1.r0.-f0.-r0.f0.-r0.d0.r0.-f0.-f0.d1.-r0.-d0.r0.-f0.r0.f0.-r0.-d1.r0.-f0.-r0.f0.-r0.d0.r0.f0.-f0.-f0.d1.-r0.-d0.r0.-f0.r0.f0.-r0.-d1.r0.-f0.-r0.f0.-r0.d0.r0.-f0.-f0.-d2.-r0.d2.-r2.r2.-d2.r2.r2.r2.r2.d0.r2.-r2.-d0.f2.f2.r2.r2.r2.r2.f2.f2.d2.d2.-r2.r2.d2.d2.-d0.-d0.r2.-r2.-d0.-d0.r2.-r2.-r2.r2.-d2.-r2.r2.d2.-d0.r2.-r2.d0.r0.d2.f2.f2.-r0.-r0.d2.-r2.r2.-d2.r2.r2.r2.r2.f2.f2.r2.r2.r2.r2.f2.f2.d2.d2.-r2.r2.d2.d2.-d0.-d0.r2.-r2.-d0.-d0.r2.-r2.-r2.r2.-d2.-r2.r2.d2.-d0.r2.-r2.d0.-r0.-r0.f2.f2.-f2.-r0.-r0.d2.-r2.r2.-d2.f2.f2.r2.r2.r2.r2.f2.f2.d2.d2.-r2.r2.d2.d2.-d0.-d0.r2.-r2.-d0.-d0.r2.-r2.-r2.r2.-d2.-r2.r2.d2.-d0.r2.-r2.d0.-r0.-r0.f2.-r0.-r0.f2.f2.r2.r2.r2.r2.f2.f2.d2.d2.-r2.r2.d2.d2.-d0.-d0.r2.-r2.-d0.-d0.r2.-r2.-r2.r2.-d2.-r2.r2.d2.-d0.r2.-r2.d0.-r0.-r0.-r0.f2.f2.r2.r2.r2.r2.f2.f2.-d0.-d0.r2.-r2.-d0.-d0.r2.-r2.-r2.r2.-d2.-r2.r2.d2.-d0.r2.-r2.d0.r0.r0.d2.d2.-r2.r2.d2.d2.r2.-r2.-r2.r2.-d2.-r2.r2.d2.-d0.r2.-r2.d0.-r0.-d0.-d0.r0.d0.r2.-r2.-d0.d2.d2.-r2.r2.d2.d2.-r2.r2.-d2.-r2.r2.d2.-r0.-d0.-d0.d2.d2.-r0.d2.-r2.r2.-d2.-d0.-d0.r2.-r2.-d0.-d0.-d0.r2.-r2.d0.r0.d2.d2.f0.-d2.-r2.d1.-r0.-d0.r0.-f0.r0.f0.-r0.-d1.r0.-f0.-r0.f0.-r0.d0.r0.r2.d2.-d0.r2.-r2.d0.-f0.d1.-r0.-d0.r0.-f0.r0.f0.-r0.-d1.r0.-f0.-r0.f0.-r0.d0.r0.-d0.r2.-r2.d0.-f0.-d0.r2.-r2.d0.f0.-f0.-f0.-f0.-f0".to_string();
+        crate::testing_utils::TestingUtils::assert_applying_sol_string_to_initial_string_results_in_target(
+            goal_str,
+            init_str,
+            op_string,
+            puzzle_type,
+            0,
+        );
+    }
 }
