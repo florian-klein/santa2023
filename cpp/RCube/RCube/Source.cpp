@@ -199,6 +199,8 @@ int main(int argc, char **argv) {
   int id = 0;
   if (argc > 1) {
     id = std::stoi(argv[1]);
+  } else {
+    printf("No puzzle id provided, using default id 0\n");
   }
 
   // Uncomment to run the example image output
