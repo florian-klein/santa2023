@@ -19,6 +19,7 @@ Face::Face() {
 }
 
 void Face::Initialize(byte index, uint rsize, uint msize) {
+
   // if(rsize > 1024) printf("Initializing Face %i\n", (int)index);
 
   // Index of this face
@@ -36,9 +37,11 @@ void Face::Initialize(byte index, uint rsize, uint msize) {
 
   // Compute the actual size of the array in bytes
   DataSize = ((uint64)MemRowSize) * ((uint64)MemRowSize);
+  std::cout << "DataSize: " << DataSize << std::endl;
 
   // Initialize array
   data = new byte[DataSize];
+  std::cout << "Data: " << data << std::endl;
 
   // Failed to allocate array
   if (data == nullptr) {
@@ -46,7 +49,7 @@ void Face::Initialize(byte index, uint rsize, uint msize) {
   }
 
   // Set all values on this face to match the faceindex
-  Paint(index);
+  PaintPictureCube(index);
 }
 
 // Verify the number of pieces on this face match what was saved and loaded from
@@ -86,8 +89,27 @@ void Face::LoadFaceState(byte faceid) {
   in.close();
 }
 
+void Face::PaintPictureCube(byte index) {
+  // paint cube with indices from index ** 2 to (index + 1) ** 2 - 1
+  if (index == 5) {
+    index = 0;
+  } else {
+    index++;
+  }
+  int already_painted = index * index;
+  int to_paint = already_painted + DataSize;
+  for (int i = already_painted; i < to_paint; i++) {
+    data[i - already_painted] = i;
+  }
+}
+
 // Paint the entire face this color
-void Face::Paint(byte color) { std::memset(data, color, DataSize); }
+void Face::Paint(byte color) {
+  // data is actually an int array, set all int values to color
+  for (uint64 i = 0; i < DataSize; ++i) {
+    data[i] = color;
+  }
+}
 
 // Counts the number of pieces on a face of a spefic color
 uint Face::Count(byte color) {

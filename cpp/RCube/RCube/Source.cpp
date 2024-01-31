@@ -206,9 +206,9 @@ int main(int argc, char **argv) {
   // Uncomment to run the example image output
   Puzzle puzzle = read_puzzle_from_csv("../../../data/sample_submission.csv",
                                        "../../../data/puzzles.csv", id);
-  // printf("Puzzle id: %i\n", puzzle.id);
-  // printf("Cube size: %i\n", puzzle.cube_puzzle.cube_size);
-  // printf("Sample solution: %s\n", puzzle.sample_solution.c_str());
+  printf("Puzzle id: %i\n", puzzle.id);
+  printf("Cube size: %i\n", puzzle.cube_puzzle.cube_size);
+  printf("Sample solution: %s\n", puzzle.sample_solution.c_str());
   Cube cube(puzzle.cube_puzzle.cube_size);
   cube.Reset();
   // apply correctly in this order
@@ -222,9 +222,9 @@ int main(int argc, char **argv) {
   sol_string = sol_string.substr(0, sol_string.length() - 1);
   // cube is not solved and at the initial state
   // cube.Reset();
-  // cube.scramble_according_to_move_sequence(sample_solution_string);
+  cube.scramble_according_to_move_sequence(sample_solution_string);
   // cube.scramble_according_to_move_sequence(sol_string);
-  // visualize_cube(cube);
+  visualize_cube(cube);
   printf("%s\n", sol_string.c_str());
 
   return EXIT_SUCCESS;

@@ -26,6 +26,16 @@ const byte Cube::cmap[30][6] = {
     {4, 5, 0, 2, 1, 3}, {5, 0, 3, 1, 0, 0}, {5, 1, 0, 2, 3, 0},
     {5, 2, 1, 3, 2, 0}, {5, 3, 2, 0, 1, 0}, {5, 4, 2, 0, 1, 3}};
 
+inline void get_edges(int corners[8][3], int size) {
+  int starting_points[] = {size, 2 * size, 3 * size, 4 * size, 5 * size, 0};
+  for (int corner_num = 0; corner_num < 8; corner_num++) {
+    for (int color_index = 0; color_index < 3; color_index++) {
+      // todo: fix indexing for elements
+      corners[corner_num][color_index] = 0;
+    }
+  }
+};
+
 // Corner color definitions
 const byte Cube::corners[8][3] = {
     {4, 0, 3}, {4, 3, 2}, {4, 1, 2}, {4, 0, 1},
@@ -57,12 +67,17 @@ void Cube::Initalize(uint rsize) {
 
   // Force memory size to be a power of 2
   int MemSize = (int)pow(2, (ceil(log2(rsize))));
+  // print size of int
+  std::cout << "Size of int: " << sizeof(int) << std::endl;
+  // MemSize = MemSize << 2;
+  std::cout << "Memory Size: " << MemSize << std::endl;
 
   // Build the faces
   faces = new Face[6];
-  for (char i = 0; i < 6; i++) {
+  for (int i = 0; i < 6; i++) {
     faces[i].Initialize(i, RowSize, MemSize);
   }
+  std::cout << "Finished initializing faces" << std::endl;
 }
 void Cube::Cleanup() {
   if (faces != nullptr)
@@ -1287,6 +1302,7 @@ void Cube::SolveCorners() {
   // Solve the U face corners
   for (int i = 0; i < 4; ++i) {
     pos = FindCorner(i);
+    std::cout << "pos: " << pos << std::endl;
 
     switch (pos) {
     case 0:
@@ -1480,7 +1496,6 @@ bool Cube::IsCorner(int cr, byte c0, byte c1, byte c2) {
   byte b0, b1, b2;
 
   GetCorner(cr, b0, b1, b2);
-
   return (c0 == b0 || c0 == b1 || c0 == b2) &&
          (c1 == b0 || c1 == b1 || c1 == b2) &&
          (c2 == b0 || c2 == b1 || c2 == b2);

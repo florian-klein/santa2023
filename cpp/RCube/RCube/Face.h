@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <iostream>
 
-typedef unsigned char byte;
+typedef unsigned int byte;
 typedef unsigned int uint;
 typedef unsigned long long uint64;
 
@@ -46,6 +46,8 @@ public:
 
   void LoadFaceState(byte faceid);
 
+  void PaintPictureCube(byte index);
+
   void Paint(byte color);
 
   uint Count(byte color);
@@ -67,15 +69,20 @@ inline void Face::RotatefaceCW(const int q) {
 
 // Gets the value of this face at coordinates r = row, c = column
 inline const byte Face::GetRC(const uint r, const uint c) const {
+  // std::cout << "GetRC: " << r << ", " << c << std::endl;
+  // data is a char but we should print it in hex
+  // std::cout << "data: " << data << std::endl;
+  int c_new = c;
+  int r_new = r;
   switch (orientation) {
   case 0:
-    return data[(r << BS) + c];
+    return data[(r_new << BS) + c_new];
   case 1:
-    return data[(c << BS) + (R1 - r)];
+    return data[(c_new << BS) + (R1 - r_new)];
   case 2:
-    return data[((R1 - r) << BS) + (R1 - c)];
+    return data[((R1 - r_new) << BS) + (R1 - c_new)];
   case 3:
-    return data[((R1 - c) << BS) + r];
+    return data[((R1 - c_new) << BS) + r_new];
   default:
     return 0;
   }
