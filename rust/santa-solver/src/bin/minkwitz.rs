@@ -11,7 +11,7 @@ use std::fs::OpenOptions;
 use std::path::Path;
 
 const USE_DJIKSTRA_SEARCH: bool = false;
-const IMPROVE_STEP_COUNT: usize = 10_000;
+const IMPROVE_STEP_COUNT: usize = 1_000_000;
 const S: usize = 1_000_000;
 const W: usize = 40;
 const N: usize = 100_000;
@@ -45,7 +45,7 @@ fn create_sgs_table_wrapper(
         info!("The base has a length of {:?}", base.elements.len());
         if improve_steps > 0 {
             info!("Improving the SGS table by {:?} steps...", improve_steps);
-            let mut sgs_table = minkwitz::MinkwitzTable::build_short_word_sgs(
+            let sgs_table = minkwitz::MinkwitzTable::build_short_word_sgs(
                 &gens,
                 &base,
                 improve_steps,
@@ -63,7 +63,6 @@ fn create_sgs_table_wrapper(
             } else {
                 error!("The SGS table was not improved. Suggest lowering improvement_steps to 0 to avoid unnecessary computation.");
             }
-            sgs_table.num_changes = 0;
             sgs_table.write_to_file(&sgs_table_path);
             return sgs_table;
         }
@@ -152,7 +151,7 @@ fn main() {
     // relevant_types.insert(PuzzleType::GLOBE(6, 10));
     // relevant_types.insert(PuzzleType::GLOBE(1, 8));
     // relevant_types.insert(PuzzleType::GLOBE(1, 6));
-    // relevant_types.insert(PuzzleType::GLOBE(1, 16));
+    relevant_types.insert(PuzzleType::GLOBE(1, 16));
     // relevant_types.insert(PuzzleType::GLOBE(2, 6));
     // relevant_types.insert(PuzzleType::GLOBE(6, 4));
     // relevant_types.insert(PuzzleType::CUBE(19));
@@ -198,7 +197,7 @@ fn main() {
                 str_to_gen.insert(move_elm.name.clone(), move_elm.permutation.clone());
             }
             // basevec from 0 to base length
-            let mut base_vec: Vec<usize>;
+            let base_vec: Vec<usize>;
             if USE_CUSTOM_BASE {
                 base_vec =
                     santa_solver_lib::coordinate_calc::get_coords::get_moves_to_solve(puzzle);
@@ -244,10 +243,7 @@ fn main() {
                 }
             } else {
                 fact = Some(minkwitz::MinkwitzTable::factorize_minkwitz(
-                    &gens,
-                    &base,
-                    &sgs_table,
-                    &target.inverse(),
+                    &gens, &base, &sgs_table, &target,
                 ));
             }
             if fact.is_none() {
